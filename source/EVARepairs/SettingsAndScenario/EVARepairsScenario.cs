@@ -39,6 +39,7 @@ namespace EVARepairs
         public static bool partsCanWearOut = false;
         public static bool reliabilityEnabled = false;
         public static int startingReliability = 30;
+        public static int maxReliability = 99;
         static float scienceToAdd = 2;
         static float maxScience = 10;
         #endregion
@@ -91,8 +92,8 @@ namespace EVARepairs
             // Increment the reliability
             partReliability = partReliabilities[partName];
             partReliability.reliability += partDidFail ? kPartFailureReliabilityIncrease : kPartReliabilityIncrease;
-            if (partReliability.reliability > 100)
-                partReliability.reliability = 100;
+            if (partReliability.reliability > maxReliability)
+                partReliability.reliability = maxReliability;
 
             // If the check failed then add a bit of Science
             if (partReliability.scienceAdded < maxScience && (HighLogic.CurrentGame.Mode == Game.Modes.CAREER || HighLogic.CurrentGame.Mode == Game.Modes.SCIENCE_SANDBOX))

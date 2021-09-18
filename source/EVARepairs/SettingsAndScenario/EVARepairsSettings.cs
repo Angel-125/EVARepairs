@@ -14,11 +14,11 @@ namespace EVARepairs
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsMaintenanceDesc", toolTip = "#LOC_EVAREPAIRS_settingsMaintenanceTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool maintenanceEnabled = true;
 
-        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsActivationFailDesc", toolTip = "#LOC_EVAREPAIRS_settingsActivationFailTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
-        public bool canFailOnActivation = false;
-
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsPartsWearOutDesc", toolTip = "#LOC_EVAREPAIRS_settingsPartsWearOutTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool partsCanWearOut = false;
+
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsActivationFailDesc", toolTip = "#LOC_EVAREPAIRS_settingsActivationFailTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool canFailOnActivation = false;
 
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsReliabilityDesc", toolTip = "#LOC_EVAREPAIRS_settingsReliabilityTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool reliabilityEnabled = false;

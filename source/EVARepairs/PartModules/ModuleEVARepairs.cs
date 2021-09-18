@@ -114,8 +114,14 @@ namespace EVARepairs
         /// <summary>
         /// If Reliability is enabled, this is the part's reliability that is factored into its activation check.
         /// </summary>
-        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiUnits = "%", guiName = "#LOC_EVAREPAIRS_reliability")]
+        [KSPField(isPersistant = true)]
         public int reliability = -1;
+
+        /// <summary>
+        /// Shows the current reliability rating, reflected by currentMTBF/maxMTBF and, if enabled, the part's Reliability rating.
+        /// </summary>
+        [KSPField(guiActive = true, guiActiveEditor = true, guiUnits = "%", guiName = "#LOC_EVAREPAIRS_reliability")]
+        public string reliabilityDisplay = string.Empty;
         #endregion
 
         #region Housekeeping
@@ -516,21 +522,12 @@ namespace EVARepairs
                 return;
 
             // Get target number
-            int targetNumber = (int)(100 * (currentMTBF / 3600) / mtbf);
-
-            // Account for reliability
-            if (EVARepairsScenario.reliabilityEnabled && reliability < 100)
-            {
-                if (reliability <= 0)
-                    reliability = EVARepairsScenario.shared.GetReliability(part.partName);
-
-                targetNumber -= (int)(100 * (reliability / 100f));
-            }
+            int targetNumber = calculateReliabilityTarget();
 
             // Make the check
             int dieRoll = UnityEngine.Random.Range(1, 100);
             bool checkFailed = false;
-            if (dieRoll > targetNumber)
+            if (dieRoll <= targetNumber)
             {
                 // Immediately run out of MTBF. This will trigger part failure.
                 currentMTBF = TimeWarp.fixedDeltaTime;
@@ -551,6 +548,8 @@ namespace EVARepairs
             // Account for time spent away...
             double elapsedTime = Planetarium.GetUniversalTime() - lastUpdated;
             UpdateMTBF(elapsedTime);
+
+            reliabilityDisplay = calculateReliabilityTarget().ToString();
         }
 
         public void OnDestroy()
@@ -578,8 +577,8 @@ namespace EVARepairs
                 Events["RepairPart"].active = false;
                 Fields["statusDisplay"].guiActive = false;
                 Fields["statusDisplay"].guiActiveEditor = false;
-                Fields["reliability"].guiActive = false;
-                Fields["reliability"].guiActiveEditor = false;
+                Fields["reliabilityDisplay"].guiActive = false;
+                Fields["reliabilityDisplay"].guiActiveEditor = false;
                 return;
             }
 
@@ -588,6 +587,15 @@ namespace EVARepairs
                 lastUpdated = Planetarium.GetUniversalTime();
 
             // Set the part reliability if needed.
+            // In the editor, make sure that the part reflects the current flight experience.
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                int baseReliability = EVARepairsScenario.shared.GetReliability(part.partName);
+                if (reliability < baseReliability)
+                    reliability = baseReliability;
+            }
+
+            // Account for in-field parts that haven't been initialized with reliability.
             if (reliability <= 0)
                 reliability = EVARepairsScenario.shared.GetReliability(part.partName);
 
@@ -597,8 +605,8 @@ namespace EVARepairs
             Events["DebugWearOutPart"].active = debugMode;
             Fields["mtbfCurrentMultiplier"].guiActive = debugMode;
             Fields["currentMTBF"].guiActive = debugMode;
-            Fields["reliability"].guiActive = EVARepairsScenario.reliabilityEnabled;
-            Fields["reliability"].guiActiveEditor = EVARepairsScenario.reliabilityEnabled;
+            Fields["reliabilityDisplay"].guiActive = EVARepairsScenario.reliabilityEnabled;
+            Fields["reliabilityDisplay"].guiActiveEditor = EVARepairsScenario.reliabilityEnabled;
             if (!partWornOut)
             {
                 statusDisplay = needsMaintenance ? Localizer.Format("#LOC_EVAREPAIRS_needsMaintenance") : Localizer.Format("#LOC_EVAREPAIRS_statusOK");
@@ -616,10 +624,29 @@ namespace EVARepairs
             {
                 DisablePartModules();
             }
+
+            reliabilityDisplay = calculateReliabilityTarget().ToString();
         }
         #endregion
 
         #region Helpers
+        private int calculateReliabilityTarget()
+        {
+            // Get target number
+            int targetNumber = (int)(100 * (currentMTBF / 3600) / mtbf);
+
+            // Account for reliability
+            if (EVARepairsScenario.reliabilityEnabled && reliability < EVARepairsScenario.maxReliability)
+            {
+                if (reliability <= 0)
+                    reliability = EVARepairsScenario.shared.GetReliability(part.partName);
+
+                targetNumber = (int)(targetNumber * (reliability / 100f));
+            }
+
+            return targetNumber;
+        }
+
         private void onGameSettingsApplied()
         {
             bool maintenanceEnabled = EVARepairsSettings.MaintenanceEnabled;
@@ -632,8 +659,8 @@ namespace EVARepairs
             Events["RepairPart"].active = needsMaintenance;
             Fields["statusDisplay"].guiActive = maintenanceEnabled;
             Fields["statusDisplay"].guiActiveEditor = maintenanceEnabled;
-            Fields["reliability"].guiActive = reliabilityEnabled;
-            Fields["reliability"].guiActiveEditor = reliabilityEnabled;
+            Fields["reliabilityDisplay"].guiActive = reliabilityEnabled;
+            Fields["reliabilityDisplay"].guiActiveEditor = reliabilityEnabled;
 
             // Make sure that Reliability is at the minimum starting value.
             int startingReliability = EVARepairsSettings.StartingReliability;
