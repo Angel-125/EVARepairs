@@ -76,6 +76,11 @@ namespace EVARepairs
         #endregion
 
         #region API
+        public void UpdateSettings()
+        {
+            onGameSettingsApplied();
+        }
+
         public void UpdateReliability(string partName, bool partDidFail)
         {
             // Get the reliability

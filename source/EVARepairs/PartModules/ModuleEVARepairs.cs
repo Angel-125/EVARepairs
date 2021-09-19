@@ -522,6 +522,7 @@ namespace EVARepairs
                 return;
 
             // Get target number
+            EVARepairsScenario.shared.UpdateSettings();
             int targetNumber = calculateReliabilityTarget();
 
             // Make the check
