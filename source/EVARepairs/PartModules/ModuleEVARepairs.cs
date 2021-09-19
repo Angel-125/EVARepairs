@@ -550,7 +550,7 @@ namespace EVARepairs
             double elapsedTime = Planetarium.GetUniversalTime() - lastUpdated;
             UpdateMTBF(elapsedTime);
 
-            reliabilityDisplay = calculateReliabilityTarget().ToString();
+            updateReliabilityDisplay();
         }
 
         public void OnDestroy()
@@ -626,11 +626,17 @@ namespace EVARepairs
                 DisablePartModules();
             }
 
-            reliabilityDisplay = calculateReliabilityTarget().ToString();
+            updateReliabilityDisplay();
         }
         #endregion
 
         #region Helpers
+        private void updateReliabilityDisplay()
+        {
+            int displayValue = (int)(100 * (currentMTBF / 3600) / mtbf);
+            reliabilityDisplay = displayValue.ToString();
+        }
+
         private int calculateReliabilityTarget()
         {
             // Get target number
