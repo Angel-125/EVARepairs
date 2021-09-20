@@ -69,3 +69,4 @@ C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\obj\Debug\EVARep
 C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\obj\Debug\EVARepairs.csproj.CopyComplete
 C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\obj\Debug\EVARepairs.dll
 C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\obj\Debug\EVARepairs.pdb
+C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\obj\Debug\EVARepairs.csproj.CoreCompileInputs.cache

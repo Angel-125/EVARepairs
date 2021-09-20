@@ -532,7 +532,7 @@ namespace EVARepairs
             if (dieRoll > targetNumber)
             {
                 // Immediately run out of MTBF. This will trigger part failure.
-                currentMTBF = TimeWarp.fixedDeltaTime;
+                currentMTBF = UnityEngine.Random.Range(1, 10);
                 checkFailed = true;
             }
 

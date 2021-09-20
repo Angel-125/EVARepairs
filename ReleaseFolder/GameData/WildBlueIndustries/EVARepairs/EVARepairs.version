@@ -1,6 +1,6 @@
 {
     "NAME":"EVARepairs",
-    "URL":"https://raw.githubusercontent.com/Angel-125/EVARepairs/main/ReleaseFolder/GameData/WildBlueIndustries/EVARepairs/EVARepairs.version",
+    "URL":"https://raw.githubusercontent.com/Angel-125/EVARepairs/master/ReleaseFolder/GameData/WildBlueIndustries/EVARepairs/EVARepairs.version",
     "DOWNLOAD":"https://github.com/Angel-125/EVARepairs/releases",
     "GITHUB":
     {
@@ -12,7 +12,7 @@
     {
 	"MAJOR":1,
 	"MINOR":0,
-	"PATCH":0,
+	"PATCH":4,
 	"BUILD":0
     },
     "KSP_VERSION_MIN":
