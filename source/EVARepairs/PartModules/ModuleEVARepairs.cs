@@ -120,8 +120,8 @@ namespace EVARepairs
         /// <summary>
         /// Shows the current reliability rating, reflected by currentMTBF/maxMTBF and, if enabled, the part's Reliability rating.
         /// </summary>
-        [KSPField(guiActive = true, guiActiveEditor = true, guiUnits = "%", guiName = "#LOC_EVAREPAIRS_reliability")]
-        public string reliabilityDisplay = string.Empty;
+        [KSPField(guiActive = true, guiActiveEditor = true, guiName = "#LOC_EVAREPAIRS_mtbfTitle")]
+        public string mtbfDisplay = string.Empty;
         #endregion
 
         #region Housekeeping
@@ -421,11 +421,12 @@ namespace EVARepairs
         /// </summary>
         public virtual void DisablePartModules()
         {
-            ConfigNode node = getPartConfigNode();
-            if (node == null || !node.HasValue(kBreakablePartModule))
-                return;
+            string[] breakbleModuleNames = new string[0];
 
-            string[] breakbleModuleNames = node.GetValues(kBreakablePartModule);
+            ConfigNode node = getPartConfigNode();
+            if (node != null)
+                breakbleModuleNames = node.GetValues(kBreakablePartModule);
+
             int moduleCount = part.Modules.Count;
             PartModule module;
             bool disableModule = false;
@@ -447,7 +448,7 @@ namespace EVARepairs
                         }
                         else
                         {
-                            part.decouple();
+                            part.explode();
                         }
                     }
                 }
@@ -528,7 +529,7 @@ namespace EVARepairs
             // Make the check
             int dieRoll = UnityEngine.Random.Range(1, 100);
             bool checkFailed = false;
-            if (dieRoll <= targetNumber)
+            if (dieRoll > targetNumber)
             {
                 // Immediately run out of MTBF. This will trigger part failure.
                 currentMTBF = TimeWarp.fixedDeltaTime;
@@ -606,8 +607,6 @@ namespace EVARepairs
             Events["DebugWearOutPart"].active = debugMode;
             Fields["mtbfCurrentMultiplier"].guiActive = debugMode;
             Fields["currentMTBF"].guiActive = debugMode;
-            Fields["reliabilityDisplay"].guiActive = EVARepairsScenario.reliabilityEnabled;
-            Fields["reliabilityDisplay"].guiActiveEditor = EVARepairsScenario.reliabilityEnabled;
             if (!partWornOut)
             {
                 statusDisplay = needsMaintenance ? Localizer.Format("#LOC_EVAREPAIRS_needsMaintenance") : Localizer.Format("#LOC_EVAREPAIRS_statusOK");
@@ -633,8 +632,10 @@ namespace EVARepairs
         #region Helpers
         private void updateReliabilityDisplay()
         {
-            int displayValue = (int)(100 * (currentMTBF / 3600) / mtbf);
-            reliabilityDisplay = displayValue.ToString();
+            int mtbfValue = (int)(100 * (currentMTBF / 3600) / mtbf);
+            mtbfDisplay = Localizer.Format("#LOC_EVAREPAIRS_mtbfValue", new string[1] { mtbfValue.ToString() });
+            if (EVARepairsScenario.reliabilityEnabled)
+                mtbfDisplay = mtbfDisplay + " " + Localizer.Format("#LOC_EVAREPAIRS_reliability", new string[1] { reliability.ToString() });
         }
 
         private int calculateReliabilityTarget()
@@ -682,6 +683,7 @@ namespace EVARepairs
                 needsMaintenance = false;
                 currentMTBF = mtbf * 3600f;
             }
+            updateReliabilityDisplay();
         }
 
         private void findEnginesAndConverters()
