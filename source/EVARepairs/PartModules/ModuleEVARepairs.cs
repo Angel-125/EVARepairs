@@ -538,7 +538,7 @@ namespace EVARepairs
 
             // Update reliability
             if (EVARepairsScenario.reliabilityEnabled)
-                EVARepairsScenario.shared.UpdateReliability(part.partName, checkFailed);
+                EVARepairsScenario.shared.UpdateReliability(part.partInfo.name, checkFailed);
         }
 
         public override void OnFixedUpdate()
@@ -579,8 +579,8 @@ namespace EVARepairs
                 Events["RepairPart"].active = false;
                 Fields["statusDisplay"].guiActive = false;
                 Fields["statusDisplay"].guiActiveEditor = false;
-                Fields["reliabilityDisplay"].guiActive = false;
-                Fields["reliabilityDisplay"].guiActiveEditor = false;
+                Fields["mtbfDisplay"].guiActive = false;
+                Fields["mtbfDisplay"].guiActiveEditor = false;
                 return;
             }
 
@@ -592,14 +592,14 @@ namespace EVARepairs
             // In the editor, make sure that the part reflects the current flight experience.
             if (HighLogic.LoadedSceneIsEditor)
             {
-                int baseReliability = EVARepairsScenario.shared.GetReliability(part.partName);
+                int baseReliability = EVARepairsScenario.shared.GetReliability(part.partInfo.name);
                 if (reliability < baseReliability)
                     reliability = baseReliability;
             }
 
             // Account for in-field parts that haven't been initialized with reliability.
             if (reliability <= 0)
-                reliability = EVARepairsScenario.shared.GetReliability(part.partName);
+                reliability = EVARepairsScenario.shared.GetReliability(part.partInfo.name);
 
             // Setup GUI
             Events["DebugBreakPart"].active = debugMode;
@@ -667,8 +667,8 @@ namespace EVARepairs
             Events["RepairPart"].active = needsMaintenance;
             Fields["statusDisplay"].guiActive = maintenanceEnabled;
             Fields["statusDisplay"].guiActiveEditor = maintenanceEnabled;
-            Fields["reliabilityDisplay"].guiActive = reliabilityEnabled;
-            Fields["reliabilityDisplay"].guiActiveEditor = reliabilityEnabled;
+            Fields["mtbfDisplay"].guiActive = reliabilityEnabled;
+            Fields["mtbfDisplay"].guiActiveEditor = reliabilityEnabled;
 
             // Make sure that Reliability is at the minimum starting value.
             int startingReliability = EVARepairsSettings.StartingReliability;

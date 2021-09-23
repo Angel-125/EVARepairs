@@ -90,6 +90,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="PartModules\ModuleEVABotRepairs.cs" />
     <Compile Include="SettingsAndScenario\EVARepairsLoader.cs" />
     <Compile Include="SettingsAndScenario\EVARepairsScenario.cs" />
     <Compile Include="PartModules\ModuleEVARepairBot.cs" />

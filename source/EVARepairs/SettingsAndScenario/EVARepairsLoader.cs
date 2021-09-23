@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using KSP.Localization;
+using ModuleWheels;
 
 namespace EVARepairs.SettingsAndScenario
 {
@@ -14,6 +15,7 @@ namespace EVARepairs.SettingsAndScenario
         class RepairModulesLoader : LoadingSystem
         {
             const string kModuleNameToAdd = "ModuleEVARepairs";
+            const string kBotRepairModuleName = "ModuleEVABotRepairs";
 
             public override bool IsReady()
             {
@@ -24,7 +26,6 @@ namespace EVARepairs.SettingsAndScenario
             {
                 int count = PartLoader.LoadedPartsList.Count;
                 AvailablePart availablePart;
-                PartModule partModule;
 
                 // Find the baseline config node.
                 ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes("EVAREPAIRS_BASELINE_CONFIG");
@@ -44,42 +45,63 @@ namespace EVARepairs.SettingsAndScenario
                     // Get the available part
                     availablePart = PartLoader.LoadedPartsList[index];
 
-                    // If the part already has ModuleEVARepairs then we're done.
-                    if (availablePart.partPrefab.HasModuleImplementing<ModuleEVARepairs>())
-                        continue;
+                    // Add repair module
+                    addRepairModule(availablePart, baselineConfig);
 
-                    // If the part doesn't have a ModuleGenerator, ModuleEngines, or BaseConverter, then we're done.
-                    if (!availablePart.partPrefab.HasModuleImplementing<ModuleGenerator>() &&
-                        !availablePart.partPrefab.HasModuleImplementing<ModuleEngines>() &&
-                        !availablePart.partPrefab.HasModuleImplementing<BaseConverter>()
-                        )
-                        continue;
-
-                    // Add the module and load the config.
-                    partModule = availablePart.partPrefab.AddModule(kModuleNameToAdd, true);
-                    if (partModule != null)
-                        partModule.Load(baselineConfig);
-
-                    // Add module info to the prefab.
-                    if (partModule is IModuleInfo)
-                    {
-                        IModuleInfo info = partModule as IModuleInfo;
-                        AvailablePart.ModuleInfo moduleInfo = new AvailablePart.ModuleInfo();
-
-                        moduleInfo.onDrawWidget = info.GetDrawModulePanelCallback();
-                        moduleInfo.moduleName = info.GetModuleTitle();
-                        moduleInfo.moduleDisplayName = partModule.GetModuleDisplayName();
-                        moduleInfo.info = info.GetInfo().Trim();
-
-                        availablePart.moduleInfos.Add(moduleInfo);
-                        availablePart.moduleInfos.Sort(((ap1, ap2) => ap1.moduleName.CompareTo(ap2.moduleName)));
-                    }
+                    // Add bot repairs module
+                    addBotRepairModule(availablePart);
                 }
             }
 
             public override string ProgressTitle()
             {
                 return Localizer.Format("#LOC_EVAREPAIRS_partLoaderTitle");
+            }
+
+            private void addBotRepairModule(AvailablePart availablePart)
+            {
+                if (availablePart.partPrefab.HasModuleImplementing<ModuleEVABotRepairs>())
+                    return;
+                if (!availablePart.partPrefab.HasModuleImplementing<ModuleWheelDamage>() && !availablePart.partPrefab.HasModuleImplementing<ModuleDeployablePart>())
+                    return;
+
+                availablePart.partPrefab.AddModule(kBotRepairModuleName, true);
+            }
+
+            private void addRepairModule(AvailablePart availablePart, ConfigNode baselineConfig)
+            {
+                PartModule partModule;
+
+                // If the part already has ModuleEVARepairs then we're done.
+                if (availablePart.partPrefab.HasModuleImplementing<ModuleEVARepairs>())
+                    return;
+
+                // If the part doesn't have a ModuleGenerator, ModuleEngines, or BaseConverter, then we're done.
+                if (!availablePart.partPrefab.HasModuleImplementing<ModuleGenerator>() &&
+                    !availablePart.partPrefab.HasModuleImplementing<ModuleEngines>() &&
+                    !availablePart.partPrefab.HasModuleImplementing<BaseConverter>()
+                    )
+                    return;
+
+                // Add the module and load the config.
+                partModule = availablePart.partPrefab.AddModule(kModuleNameToAdd, true);
+                if (partModule != null)
+                    partModule.Load(baselineConfig);
+
+                // Add module info to the prefab.
+                if (partModule is IModuleInfo)
+                {
+                    IModuleInfo info = partModule as IModuleInfo;
+                    AvailablePart.ModuleInfo moduleInfo = new AvailablePart.ModuleInfo();
+
+                    moduleInfo.onDrawWidget = info.GetDrawModulePanelCallback();
+                    moduleInfo.moduleName = info.GetModuleTitle();
+                    moduleInfo.moduleDisplayName = partModule.GetModuleDisplayName();
+                    moduleInfo.info = info.GetInfo().Trim();
+
+                    availablePart.moduleInfos.Add(moduleInfo);
+                    availablePart.moduleInfos.Sort(((ap1, ap2) => ap1.moduleName.CompareTo(ap2.moduleName)));
+                }
             }
         }
 

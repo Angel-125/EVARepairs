@@ -1,0 +1,3 @@
+New Part
+
+- T-800 T.H.O.M.P.B.E.R.R.Y. Repair Bot: This advanced robot is capable of making repairs on broken parts in place of an engineer. It can also repair tires, solar arrays, deployable antennas, and even repack parachutes. It has a small storage compartment for holding EVA Repair Kits.
