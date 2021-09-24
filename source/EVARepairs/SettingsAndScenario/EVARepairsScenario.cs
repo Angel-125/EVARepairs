@@ -27,8 +27,8 @@ namespace EVARepairs
         const string kPartNameValue = "partName";
         const string kReliabilityValue = "reliability";
         const string kScienceAddedValue = "scienceAdded";
-        const int kPartFailureReliabilityIncrease = 5;
-        const int kPartReliabilityIncrease = 10;
+        const int kPartFailureReliabilityIncrease = 7;
+        const int kPartReliabilityIncrease = 2;
         const float kMessageDuration = 5f;
         #endregion
 
@@ -101,12 +101,12 @@ namespace EVARepairs
                 partReliability.reliability = maxReliability;
 
             // If the check failed then add a bit of Science
-            if (partReliability.scienceAdded < maxScience && (HighLogic.CurrentGame.Mode == Game.Modes.CAREER || HighLogic.CurrentGame.Mode == Game.Modes.SCIENCE_SANDBOX))
+            if (partDidFail && partReliability.scienceAdded < maxScience && (HighLogic.CurrentGame.Mode == Game.Modes.CAREER || HighLogic.CurrentGame.Mode == Game.Modes.SCIENCE_SANDBOX))
             {
                 ResearchAndDevelopment.Instance.AddScience(scienceToAdd, TransactionReasons.ScienceTransmission);
                 
                 string message = Localizer.Format("#LOC_EVAREPAIRS_scienceAdded", new string[2] { string.Format("{0:n1}", scienceToAdd), PartLoader.getPartInfoByName(partName).title } );
-                ScreenMessages.PostScreenMessage(message, kMessageDuration, ScreenMessageStyle.UPPER_CENTER);
+                ScreenMessages.PostScreenMessage(message, kMessageDuration, ScreenMessageStyle.UPPER_LEFT);
             }
 
             // Save updated reliability
@@ -117,6 +117,12 @@ namespace EVARepairs
         {
             if (partReliabilities.ContainsKey(partName))
             {
+                PartReliability partReliability = partReliabilities[partName];
+                if (partReliability.reliability < startingReliability)
+                {
+                    partReliability.reliability = startingReliability;
+                    partReliabilities[partName] = partReliability;
+                }
                 return partReliabilities[partName].reliability;
             }
             else

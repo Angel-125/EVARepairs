@@ -14,9 +14,9 @@ GameData
 
 Changes
 
-- If parts fail their activation check, then they'll fail 1 to 10 seconds after activation.
-- Engines that can't be shut down will explode if they fail their activation check.
-- Fixed issue where parts weren't gaining flight experience.
+- Fixed issue where part reliabilities weren't updating to the minimum starting reliability when the minimum is increased.
+- Fixed issue where players gain Science even when the activation check succeeds.
+- You now gain 2 Reliability when a part succeeds its activation check, but 7 Reliability when the check fails, reflecting that you gain more by learning from mistakes.
 
 ---LICENSE---
 Art Assets, including .mu, .png, and .dds files are copyright 2021 by Michael Billard, All Rights Reserved.
