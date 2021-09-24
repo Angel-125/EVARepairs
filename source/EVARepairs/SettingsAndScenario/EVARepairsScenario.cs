@@ -103,6 +103,8 @@ namespace EVARepairs
             // If the check failed then add a bit of Science
             if (partDidFail && partReliability.scienceAdded < maxScience && (HighLogic.CurrentGame.Mode == Game.Modes.CAREER || HighLogic.CurrentGame.Mode == Game.Modes.SCIENCE_SANDBOX))
             {
+                partReliability.scienceAdded += scienceToAdd;
+
                 ResearchAndDevelopment.Instance.AddScience(scienceToAdd, TransactionReasons.ScienceTransmission);
                 
                 string message = Localizer.Format("#LOC_EVAREPAIRS_scienceAdded", new string[2] { string.Format("{0:n1}", scienceToAdd), PartLoader.getPartInfoByName(partName).title } );
