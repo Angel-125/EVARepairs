@@ -14,9 +14,11 @@ GameData
 
 Changes
 
-- Fixed issue where part reliabilities weren't updating to the minimum starting reliability when the minimum is increased.
-- Fixed issue where players gain Science even when the activation check succeeds.
-- You now gain 2 Reliability when a part succeeds its activation check, but 7 Reliability when the check fails, reflecting that you gain more by learning from mistakes.
+- Fixed issue where repeatedly starting/stopping engines wasn't performing the activation check.
+- Fixed issue where repeatedly starting/stopping converters wasn't performing the activation check.
+- Parts with reaction wheels can now fail, but you'll need to enable the option in the EVA Repairs difficulty settings (it's off by default).
+- If a reaction wheel fails, it will either lose one of its torque axis or fail entirely.
+- When a part fails its activation check, it can gain between 1% and 10% Reliability instead of a fixed 7% gain.
 
 ---LICENSE---
 Art Assets, including .mu, .png, and .dds files are copyright 2021 by Michael Billard, All Rights Reserved.

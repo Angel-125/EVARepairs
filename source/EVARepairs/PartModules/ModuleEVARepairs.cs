@@ -8,6 +8,61 @@ using KSP.Localization;
 
 namespace EVARepairs
 {
+    #region ReactionWheelState
+    internal class ReactionWheelState
+    {
+        public float rollTorque = 0;
+        public float pitchTorque = 0;
+        public float yawTorque = 0;
+        public ModuleReactionWheel reactionWheel = null;
+
+        public ReactionWheelState(ModuleReactionWheel wheel)
+        {
+            reactionWheel = wheel;
+            rollTorque = reactionWheel.RollTorque;
+            pitchTorque = reactionWheel.PitchTorque;
+            yawTorque = reactionWheel.YawTorque;
+        }
+
+        public void DisableModule()
+        {
+            int roll = UnityEngine.Random.Range(1, 100);
+
+            if (roll >= 75)
+            {
+                reactionWheel.OnInactive();
+                reactionWheel.enabled = false;
+                reactionWheel.isEnabled = false;
+            }
+            else if (roll >= 50)
+            {
+                reactionWheel.YawTorque = 0;
+            }
+            else if (roll >= 25)
+            {
+                reactionWheel.PitchTorque = 0;
+            }
+            else
+            {
+                reactionWheel.RollTorque = 0;
+            }
+        }
+
+        public void EnableModule()
+        {
+            if (!reactionWheel.enabled)
+            {
+                reactionWheel.enabled = true;
+                reactionWheel.isEnabled = true;
+                reactionWheel.RollTorque = rollTorque;
+                reactionWheel.PitchTorque = pitchTorque;
+                reactionWheel.YawTorque = yawTorque;
+                reactionWheel.OnActive();
+            }
+        }
+    }
+    #endregion
+
     /// <summary>
     /// This is a simple part module that disables other part modules when the Mean Time Between Failures expires.
     /// </summary>
@@ -128,7 +183,12 @@ namespace EVARepairs
         List<BaseConverter> converters = null;
         List<ModuleGenerator> generators = null;
         List<ModuleEngines> engines = null;
+        List<bool> engineStates = null;
+        List<bool> converterStates = null;
+        ReactionWheelState reactionWheelState = null;
         double mtbfRateMultiplier = 1f;
+        bool sasIsActive = false;
+        bool sasWasActive = false;
         #endregion
 
         #region IModuleInfo
@@ -264,6 +324,10 @@ namespace EVARepairs
             // If EVA Repairs is disabled, or the part needs maintenance, or the part is worn out, then we can't update.
             if (!EVARepairsScenario.maintenanceEnabled || needsMaintenance || partWornOut)
                 return false;
+
+            // If the part has an active reaction wheel, then we can update.
+            if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && sasIsActive)
+                return true;
 
             // If the part has no engine, then we can update.
             if (engines.Count == 0 && generators.Count == 0 && converters.Count == 0)
@@ -471,6 +535,12 @@ namespace EVARepairs
                     disableModule = true;
                 }
 
+                // Shutdown the reaction wheel
+                if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && module == reactionWheelState.reactionWheel)
+                {
+                    reactionWheelState.DisableModule();
+                }
+
                 // Now handle modules on our disable list.
                 if (!disableModule && (module == this || !breakbleModuleNames.Contains(module.moduleName)))
                     continue;
@@ -498,7 +568,13 @@ namespace EVARepairs
             for (int index = 0; index < moduleCount; index++)
             {
                 module = part.Modules[index];
-                if (module is ModuleEngines || module is ModuleGenerator || module is BaseConverter)
+                if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && module == reactionWheelState.reactionWheel)
+                {
+                    reactionWheelState.EnableModule();
+                    enableModule = false;
+                    continue;
+                }
+                else if (module is ModuleEngines || module is ModuleGenerator || module is BaseConverter)
                     enableModule = true;
 
                 if (!enableModule && (module == this || !breakbleModuleNames.Contains(module.moduleName)))
@@ -513,15 +589,12 @@ namespace EVARepairs
             }
 
         }
-        #endregion
 
-        #region Overrides
-        public override void OnActive()
+        /// <summary>
+        /// Performs the activation check to see if the part should fail.
+        /// </summary>
+        public virtual void PerformActivationCheck()
         {
-            base.OnActive();
-            if (!EVARepairsScenario.maintenanceEnabled || !EVARepairsScenario.canFailOnActivation || needsMaintenance || partWornOut)
-                return;
-
             // Get target number
             EVARepairsScenario.shared.UpdateSettings();
             int targetNumber = calculateReliabilityTarget();
@@ -540,8 +613,19 @@ namespace EVARepairs
             if (EVARepairsScenario.reliabilityEnabled)
                 EVARepairsScenario.shared.UpdateReliability(part.partInfo.name, checkFailed);
         }
+        #endregion
 
-        public override void OnFixedUpdate()
+        #region Overrides
+        public override void OnActive()
+        {
+            base.OnActive();
+            if (!EVARepairsScenario.maintenanceEnabled || !EVARepairsScenario.canFailOnActivation || needsMaintenance || partWornOut)
+                return;
+
+            PerformActivationCheck();
+        }
+
+        public void FixedUpdate()
         {
             base.OnFixedUpdate();
             if (!HighLogic.LoadedSceneIsFlight || !autoUpdatesEnabled)
@@ -550,6 +634,9 @@ namespace EVARepairs
             // Account for time spent away...
             double elapsedTime = Planetarium.GetUniversalTime() - lastUpdated;
             UpdateMTBF(elapsedTime);
+
+            if (shouldCheckActivation())
+                PerformActivationCheck();
 
             updateReliabilityDisplay();
         }
@@ -630,6 +717,54 @@ namespace EVARepairs
         #endregion
 
         #region Helpers
+        private bool shouldCheckActivation()
+        {
+            bool checkReliability = false;
+            if (!EVARepairsScenario.canFailOnActivation)
+                return false;
+
+            // Check engines
+            if (engines != null)
+            {
+                int count = engines.Count;
+                for (int index = 0; index < count; index++)
+                {
+                    if (engines[index].isOperational != engineStates[index])
+                    {
+                        engineStates[index] = engines[index].isOperational;
+                        checkReliability = true;
+                    }
+                }
+            }
+
+            // Check converters
+            if (converters != null)
+            {
+                int count = converters.Count;
+                for (int index = 0; index < count; index++)
+                {
+                    if (converters[index].IsActivated != converterStates[index])
+                    {
+                        converterStates[index] = converters[index].IsActivated;
+                        checkReliability = true;
+                    }
+                }
+            }
+
+            // Check reaction wheel
+            if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null)
+            {
+                sasIsActive = FlightGlobals.ActiveVessel.ActionGroups[KSPActionGroup.SAS];
+                if (sasIsActive != sasWasActive)
+                    checkReliability = true;
+                sasWasActive = sasIsActive;
+            }
+
+            // Check event cards
+
+            return checkReliability;
+        }
+
         private void updateReliabilityDisplay()
         {
             int mtbfValue = (int)(100 * (currentMTBF / 3600) / mtbf);
@@ -689,8 +824,35 @@ namespace EVARepairs
         private void findEnginesAndConverters()
         {
             engines = part.FindModulesImplementing<ModuleEngines>();
+            if (engines != null)
+            {
+                engineStates = new List<bool>();
+                int count = engines.Count;
+                for (int index = 0; index < count; index++)
+                {
+                    engineStates.Add(engines[index].isOperational);
+                }
+            }
             generators = part.FindModulesImplementing<ModuleGenerator>();
+
             converters = part.FindModulesImplementing<BaseConverter>();
+            if (converters != null)
+            {
+                converterStates = new List<bool>();
+                int count = converters.Count;
+                for (int index = 0; index > count; index++)
+                {
+                    converterStates.Add(converters[index].IsActivated);
+                }
+            }
+
+            ModuleReactionWheel reactionWheel = part.FindModuleImplementing<ModuleReactionWheel>();
+            if (reactionWheel != null)
+            {
+                reactionWheelState = new ReactionWheelState(reactionWheel);
+                sasIsActive = FlightGlobals.ActiveVessel.ActionGroups[KSPActionGroup.SAS];
+                sasWasActive = sasIsActive;
+            }
         }
 
         private ConfigNode getPartConfigNode()

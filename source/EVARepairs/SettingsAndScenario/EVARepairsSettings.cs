@@ -25,6 +25,9 @@ namespace EVARepairs
 
         [GameParameters.CustomIntParameterUI("#LOC_EVAREPAIRS_settingsStartingReliabilityDesc", maxValue = 80, minValue = 30, stepSize = 5, toolTip = "#LOC_EVAREPAIRS_settingsStartingReliabilityTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public int startingReliability = 50;
+
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsWheelsDesc", toolTip = "#LOC_EVAREPAIRS_settingsWheelsTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool reactionWheelFailureEnabled = false;
         #region CustomParameterNode
 
         public override string DisplaySection
@@ -135,6 +138,15 @@ namespace EVARepairs
             {
                 EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
                 return settings.startingReliability;
+            }
+        }
+
+        public static bool ReactionWheelsCanFail
+        {
+            get
+            {
+                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
+                return settings.reactionWheelFailureEnabled;
             }
         }
     }

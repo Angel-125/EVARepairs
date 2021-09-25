@@ -76,10 +76,11 @@ namespace EVARepairs.SettingsAndScenario
                 if (availablePart.partPrefab.HasModuleImplementing<ModuleEVARepairs>())
                     return;
 
-                // If the part doesn't have a ModuleGenerator, ModuleEngines, or BaseConverter, then we're done.
+                // If the part doesn't have one of the supported modules, then we're done.
                 if (!availablePart.partPrefab.HasModuleImplementing<ModuleGenerator>() &&
                     !availablePart.partPrefab.HasModuleImplementing<ModuleEngines>() &&
-                    !availablePart.partPrefab.HasModuleImplementing<BaseConverter>()
+                    !availablePart.partPrefab.HasModuleImplementing<BaseConverter>() &&
+                    !availablePart.partPrefab.HasModuleImplementing<ModuleReactionWheel>()
                     )
                     return;
 

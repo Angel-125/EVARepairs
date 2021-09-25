@@ -27,7 +27,7 @@ namespace EVARepairs
         const string kPartNameValue = "partName";
         const string kReliabilityValue = "reliability";
         const string kScienceAddedValue = "scienceAdded";
-        const int kPartFailureReliabilityIncrease = 7;
+        const int kPartFailureMaxReliabilityIncrease = 10;
         const int kPartReliabilityIncrease = 2;
         const float kMessageDuration = 5f;
         #endregion
@@ -38,6 +38,7 @@ namespace EVARepairs
         public static bool canFailOnActivation = false;
         public static bool partsCanWearOut = false;
         public static bool reliabilityEnabled = false;
+        public static bool reactionWheelsCanFail = false;
         public static int startingReliability = 30;
         public static int maxReliability = 99;
         static float scienceToAdd = 2;
@@ -96,7 +97,7 @@ namespace EVARepairs
 
             // Increment the reliability
             partReliability = partReliabilities[partName];
-            partReliability.reliability += partDidFail ? kPartFailureReliabilityIncrease : kPartReliabilityIncrease;
+            partReliability.reliability += partDidFail ? UnityEngine.Random.Range(1, kPartFailureMaxReliabilityIncrease) : kPartReliabilityIncrease;
             if (partReliability.reliability > maxReliability)
                 partReliability.reliability = maxReliability;
 
@@ -188,6 +189,7 @@ namespace EVARepairs
             partsCanWearOut = EVARepairsSettings.PartsCanWearOut;
             reliabilityEnabled = EVARepairsSettings.ReliabilityEnabled;
             startingReliability = EVARepairsSettings.StartingReliability;
+            reactionWheelsCanFail = EVARepairsSettings.ReactionWheelsCanFail;
         }
         #endregion
     }
