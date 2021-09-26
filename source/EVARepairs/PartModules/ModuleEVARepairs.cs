@@ -500,43 +500,24 @@ namespace EVARepairs
 
                 // Shutdown the engine
                 if (module is ModuleEngines)
-                {
-                    ModuleEngines engine = (ModuleEngines)module;
-                    if (engine.isOperational)
-                    {
-                        // If the engine can be shut down, then shut it down. Otherwise, decouple the part.
-                        if (engine.allowShutdown)
-                        {
-                            engine.Shutdown();
-                            disableModule = true;
-                        }
-                        else
-                        {
-                            part.explode();
-                        }
-                    }
-                }
+                    shutdownEngine(module);
 
                 // Shutdown the generator
-                if (module is ModuleGenerator)
+                else if (module is ModuleGenerator)
                 {
-                    ModuleGenerator generator = (ModuleGenerator)module;
-                    if (!generator.isAlwaysActive)
-                        generator.Shutdown();
+                    shutdownGenerator(module);
                     disableModule = true;
                 }
 
                 // Shutdown the converter
-                if (module is BaseConverter)
+                else if (module is BaseConverter)
                 {
-                    BaseConverter converter = (BaseConverter)module;
-                    if (!converter.AlwaysActive && converter.IsActivated)
-                        converter.StopResourceConverter();
+                    shutdownGenerator(module);
                     disableModule = true;
                 }
 
                 // Shutdown the reaction wheel
-                if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && module == reactionWheelState.reactionWheel)
+                else if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && module == reactionWheelState.reactionWheel)
                 {
                     reactionWheelState.DisableModule();
                 }
@@ -558,10 +539,10 @@ namespace EVARepairs
         public virtual void EnablePartModules()
         {
             ConfigNode node = getPartConfigNode();
-            if (node == null || !node.HasValue(kBreakablePartModule))
-                return;
+            string[] breakbleModuleNames = new string[0];
+            if (node != null)
+                breakbleModuleNames = node.GetValues(kBreakablePartModule);
 
-            string[] breakbleModuleNames = node.GetValues(kBreakablePartModule);
             int moduleCount = part.Modules.Count;
             PartModule module;
             bool enableModule = false;
@@ -584,7 +565,15 @@ namespace EVARepairs
                 module.isEnabled = true;
                 // You'll need to manually restart engines...
                 if (!(module is ModuleEngines))
+                {
                     module.OnActive();
+                }
+                else
+                {
+                    ModuleEngines engine = (ModuleEngines)module;
+                    engine.allowRestart = true;
+                    engine.manuallyOverridden = false;
+                }
                 enableModule = false;
             }
 
@@ -717,6 +706,43 @@ namespace EVARepairs
         #endregion
 
         #region Helpers
+        private void shutdownConverter(PartModule module)
+        {
+            BaseConverter converter = (BaseConverter)module;
+            if (!converter.AlwaysActive && converter.IsActivated)
+                converter.StopResourceConverter();
+        }
+
+        private void shutdownGenerator(PartModule module)
+        {
+            ModuleGenerator generator = (ModuleGenerator)module;
+            if (!generator.isAlwaysActive)
+                generator.Shutdown();
+        }
+
+        private void shutdownEngine(PartModule module)
+        {
+            if (module is ModuleEngines)
+            {
+                ModuleEngines engine = (ModuleEngines)module;
+                if (engine.isOperational)
+                {
+                    // If the engine can be shut down, then shut it down. Otherwise, make it go boom.
+                    if (engine.allowShutdown)
+                    {
+                        engine.allowRestart = false;
+                        engine.manuallyOverridden = true;
+                        engine.Flameout(Localizer.Format("#LOC_EVAREPAIRS_needsMaintenance"));
+                        engine.Shutdown();
+                    }
+                    else
+                    {
+                        part.explode();
+                    }
+                }
+            }
+        }
+
         private bool shouldCheckActivation()
         {
             bool checkReliability = false;
