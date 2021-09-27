@@ -39,6 +39,8 @@ namespace EVARepairs
         public static bool partsCanWearOut = false;
         public static bool reliabilityEnabled = false;
         public static bool reactionWheelsCanFail = false;
+        public static bool probeCoresCanFail = false;
+        public static bool technologicalProgressEnabled = false;
         public static int startingReliability = 30;
         public static int maxReliability = 99;
         static float scienceToAdd = 2;
@@ -190,6 +192,8 @@ namespace EVARepairs
             reliabilityEnabled = EVARepairsSettings.ReliabilityEnabled;
             startingReliability = EVARepairsSettings.StartingReliability;
             reactionWheelsCanFail = EVARepairsSettings.ReactionWheelsCanFail;
+            probeCoresCanFail = EVARepairsSettings.ProbeCoresCanFail;
+            technologicalProgressEnabled = EVARepairsSettings.TechnologicalProgressEnabled;
         }
         #endregion
     }

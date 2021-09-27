@@ -80,7 +80,8 @@ namespace EVARepairs.SettingsAndScenario
                 if (!availablePart.partPrefab.HasModuleImplementing<ModuleGenerator>() &&
                     !availablePart.partPrefab.HasModuleImplementing<ModuleEngines>() &&
                     !availablePart.partPrefab.HasModuleImplementing<BaseConverter>() &&
-                    !availablePart.partPrefab.HasModuleImplementing<ModuleReactionWheel>()
+                    !availablePart.partPrefab.HasModuleImplementing<ModuleReactionWheel>() &&
+                    (!availablePart.partPrefab.HasModuleImplementing<ModuleCommand>() || availablePart.partPrefab.CrewCapacity >= 0)
                     )
                     return;
 

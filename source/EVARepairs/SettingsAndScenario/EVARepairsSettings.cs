@@ -26,8 +26,14 @@ namespace EVARepairs
         [GameParameters.CustomIntParameterUI("#LOC_EVAREPAIRS_settingsStartingReliabilityDesc", maxValue = 80, minValue = 30, stepSize = 5, toolTip = "#LOC_EVAREPAIRS_settingsStartingReliabilityTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public int startingReliability = 50;
 
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsTechProgressDesc", toolTip = "#LOC_EVAREPAIRS_settingsTechProgressTip", autoPersistance = true, gameMode = GameParameters.GameMode.CAREER | GameParameters.GameMode.SCIENCE)]
+        public bool technologicalProgressEnabled = false;
+
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsWheelsDesc", toolTip = "#LOC_EVAREPAIRS_settingsWheelsTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool reactionWheelFailureEnabled = false;
+
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsProbeCoresDesc", toolTip = "#LOC_EVAREPAIRS_settingsProbeCoresTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool probeCoresCanFail = false;
         #region CustomParameterNode
 
         public override string DisplaySection
@@ -85,7 +91,7 @@ namespace EVARepairs
 
         public override bool Enabled(System.Reflection.MemberInfo member, GameParameters parameters)
         {
-            if (member.Name == "startingReliability")
+            if (member.Name == "startingReliability" || member.Name == "technologicalProgressEnabled")
                 return reliabilityEnabled;
 
             else if (member.Name == "reliabilityEnabled")
@@ -149,6 +155,24 @@ namespace EVARepairs
                 return settings.reactionWheelFailureEnabled;
             }
         }
+
+        public static bool ProbeCoresCanFail
+        {
+            get
+            {
+                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
+                return settings.probeCoresCanFail;
+            }
+        }
+
+        public static bool TechnologicalProgressEnabled
+        {
+            get
+            {
+                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
+                return settings.technologicalProgressEnabled;
+            }
+        }        
     }
 }
 

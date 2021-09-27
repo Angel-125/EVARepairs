@@ -5,6 +5,7 @@ using System.Text;
 using UnityEngine;
 using KSP.IO;
 using KSP.Localization;
+using System.Reflection;
 
 namespace EVARepairs
 {
@@ -186,9 +187,12 @@ namespace EVARepairs
         List<bool> engineStates = null;
         List<bool> converterStates = null;
         ReactionWheelState reactionWheelState = null;
+        ModuleCommand probeCore = null;
         double mtbfRateMultiplier = 1f;
         bool sasIsActive = false;
         bool sasWasActive = false;
+        bool probeIsHibernating = false;
+        bool probeWasHibernating = false;
         #endregion
 
         #region IModuleInfo
@@ -247,7 +251,7 @@ namespace EVARepairs
         /// <summary>
         /// Debug event to break the part.
         /// </summary>
-        [KSPEvent(guiName = "(Debug) break part", guiActive = true)]
+        [KSPEvent(guiName = "(Debug) break part", guiActive = true, guiActiveUncommand = true)]
         public virtual void DebugBreakPart()
         {
             needsMaintenance = false;
@@ -257,7 +261,7 @@ namespace EVARepairs
         /// <summary>
         /// Debug event to break the part.
         /// </summary>
-        [KSPEvent(guiName = "(Debug) wear out part", guiActive = true)]
+        [KSPEvent(guiName = "(Debug) wear out part", guiActive = true, guiActiveUncommand = true)]
         public virtual void DebugWearOutPart()
         {
             needsMaintenance = false;
@@ -268,7 +272,7 @@ namespace EVARepairs
         /// <summary>
         /// Debug event to break the part.
         /// </summary>
-        [KSPEvent(guiName = "(Debug) repair part", guiActive = true)]
+        [KSPEvent(guiName = "(Debug) repair part", guiActive = true, guiActiveUncommand = true)]
         public virtual void DebugRepairPart()
         {
             RestorePartFunctionality();
@@ -329,11 +333,15 @@ namespace EVARepairs
             if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && sasIsActive)
                 return true;
 
-            // If the part has no engine, then we can update.
+            // If the part has a probe core that's not hibernating, then we can update.
+            if (EVARepairsScenario.probeCoresCanFail && probeCore != null && !probeIsHibernating)
+                return true;
+
+            // If the part has no engine, generator, or converter, then we can update.
             if (engines.Count == 0 && generators.Count == 0 && converters.Count == 0)
                 return true;
 
-            // If the part has an active engine, generator, or converter, then we can update.
+            // If the part has an active engine, then we can update.
             int count = engines.Count;
             for (int index = 0; index < count; index++)
             {
@@ -512,7 +520,7 @@ namespace EVARepairs
                 // Shutdown the converter
                 else if (module is BaseConverter)
                 {
-                    shutdownGenerator(module);
+                    shutdownConverter(module);
                     disableModule = true;
                 }
 
@@ -520,6 +528,13 @@ namespace EVARepairs
                 else if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && module == reactionWheelState.reactionWheel)
                 {
                     reactionWheelState.DisableModule();
+                }
+
+                // Shutdown the probe core
+                else if (EVARepairsScenario.probeCoresCanFail && module is ModuleCommand)
+                {
+                    disableProbeCore(module);
+                    disableModule = true;
                 }
 
                 // Now handle modules on our disable list.
@@ -549,31 +564,41 @@ namespace EVARepairs
             for (int index = 0; index < moduleCount; index++)
             {
                 module = part.Modules[index];
+
+                // Handle reaction wheels
                 if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && module == reactionWheelState.reactionWheel)
                 {
                     reactionWheelState.EnableModule();
                     enableModule = false;
                     continue;
                 }
-                else if (module is ModuleEngines || module is ModuleGenerator || module is BaseConverter)
+
+                // Handle other built-in modules
+                else if (module is ModuleEngines || module is ModuleGenerator || module is BaseConverter || module is ModuleCommand)
                     enableModule = true;
 
+                // If the module isn't on our list, or the enable flag isn't set, or we're trying to renable this module, then skip it.
                 if (!enableModule && (module == this || !breakbleModuleNames.Contains(module.moduleName)))
                     continue;
 
+                // Re-enable the module.
                 module.enabled = true;
                 module.isEnabled = true;
-                // You'll need to manually restart engines...
+
+                // For most modules just call OnActive.
                 if (!(module is ModuleEngines))
                 {
                     module.OnActive();
                 }
+
+                // You'll need to manually restart engines...
                 else
                 {
                     ModuleEngines engine = (ModuleEngines)module;
                     engine.allowRestart = true;
                     engine.manuallyOverridden = false;
                 }
+
                 enableModule = false;
             }
 
@@ -624,9 +649,11 @@ namespace EVARepairs
             double elapsedTime = Planetarium.GetUniversalTime() - lastUpdated;
             UpdateMTBF(elapsedTime);
 
+            // Perform activation check if needed
             if (shouldCheckActivation())
                 PerformActivationCheck();
 
+            // Update reliability display
             updateReliabilityDisplay();
         }
 
@@ -641,7 +668,7 @@ namespace EVARepairs
         public override void OnStart(StartState state)
         {
             base.OnStart(state);
-            findEnginesAndConverters();
+            findModulesThatFail();
 
             if (HighLogic.LoadedSceneIsFlight)
             {
@@ -706,6 +733,29 @@ namespace EVARepairs
         #endregion
 
         #region Helpers
+        private void disableProbeCore(PartModule module)
+        {
+            BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            Type objectType = typeof(ModuleCommand);
+            ModuleCommand probeCore = (ModuleCommand)module;
+            if (objectType == null)
+                return;
+
+            FieldInfo moduleState = objectType.GetField("moduleState", flags);
+            if (moduleState != null)
+            {
+                moduleState.SetValue(probeCore, ModuleCommand.ModuleControlState.NoControlPoint);
+            }
+
+            FieldInfo localVesselControlState = objectType.GetField("localVesselControlState", flags);
+            if (localVesselControlState != null)
+            {
+                localVesselControlState.SetValue(probeCore, CommNet.VesselControlState.Probe);
+            }
+
+            part.isControlSource = Vessel.ControlLevel.NONE;
+        }
+
         private void shutdownConverter(PartModule module)
         {
             BaseConverter converter = (BaseConverter)module;
@@ -786,6 +836,15 @@ namespace EVARepairs
                 sasWasActive = sasIsActive;
             }
 
+            // Check probe core hibernation
+            if (EVARepairsScenario.probeCoresCanFail && probeCore != null)
+            {
+                probeIsHibernating = probeCore.IsHibernating;
+                if (probeIsHibernating != probeWasHibernating)
+                    checkReliability = true;
+                probeWasHibernating = probeIsHibernating;
+            }
+
             // Check event cards
 
             return checkReliability;
@@ -847,7 +906,7 @@ namespace EVARepairs
             updateReliabilityDisplay();
         }
 
-        private void findEnginesAndConverters()
+        private void findModulesThatFail()
         {
             engines = part.FindModulesImplementing<ModuleEngines>();
             if (engines != null)
@@ -859,6 +918,7 @@ namespace EVARepairs
                     engineStates.Add(engines[index].isOperational);
                 }
             }
+
             generators = part.FindModulesImplementing<ModuleGenerator>();
 
             converters = part.FindModulesImplementing<BaseConverter>();
@@ -878,6 +938,16 @@ namespace EVARepairs
                 reactionWheelState = new ReactionWheelState(reactionWheel);
                 sasIsActive = FlightGlobals.ActiveVessel.ActionGroups[KSPActionGroup.SAS];
                 sasWasActive = sasIsActive;
+            }
+
+            if (part.CrewCapacity == 0)
+            {
+                probeCore = part.FindModuleImplementing<ModuleCommand>();
+                if (probeCore != null)
+                {
+                    probeIsHibernating = probeCore.IsHibernating;
+                    probeWasHibernating = probeIsHibernating;
+                }
             }
         }
 
