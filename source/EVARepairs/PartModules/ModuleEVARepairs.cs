@@ -926,18 +926,21 @@ namespace EVARepairs
             {
                 converterStates = new List<bool>();
                 int count = converters.Count;
-                for (int index = 0; index > count; index++)
+                for (int index = 0; index < count; index++)
                 {
                     converterStates.Add(converters[index].IsActivated);
                 }
             }
 
-            ModuleReactionWheel reactionWheel = part.FindModuleImplementing<ModuleReactionWheel>();
-            if (reactionWheel != null)
+            if (HighLogic.LoadedSceneIsFlight)
             {
-                reactionWheelState = new ReactionWheelState(reactionWheel);
-                sasIsActive = FlightGlobals.ActiveVessel.ActionGroups[KSPActionGroup.SAS];
-                sasWasActive = sasIsActive;
+                ModuleReactionWheel reactionWheel = part.FindModuleImplementing<ModuleReactionWheel>();
+                if (reactionWheel != null)
+                {
+                    reactionWheelState = new ReactionWheelState(reactionWheel);
+                    sasIsActive = FlightGlobals.ActiveVessel.ActionGroups[KSPActionGroup.SAS];
+                    sasWasActive = sasIsActive;
+                }
             }
 
             if (part.CrewCapacity == 0)
