@@ -26,10 +26,19 @@ namespace EVARepairs
         const string kPartReliabilityNode = "PartReliability";
         const string kPartNameValue = "partName";
         const string kReliabilityValue = "reliability";
+        const string kTechNodeReliabilityName = "TechNodeReliabilityBonus";
+        const string kTechNodeId = "TechId";
         const string kScienceAddedValue = "scienceAdded";
         const int kPartFailureMaxReliabilityIncrease = 10;
         const int kPartReliabilityIncrease = 2;
         const float kMessageDuration = 5f;
+        const string kGeneralRocketry = "generalRocketry";
+        const string kAdvancedRocketry = "advRocketry";
+        const string kHeavyRocketry = "heavyRocketry";
+        const string kHeavierRocketry = "heavierRocketry";
+        const string kVeryHeavyRocketry = "veryHeavyRocketry";
+        const int kMinStartingReliabilityBonus = 1;
+        const int kMaxStartingReliabilityBonus = 10;
         #endregion
 
         #region Static Fields
@@ -42,13 +51,16 @@ namespace EVARepairs
         public static bool probeCoresCanFail = false;
         public static bool technologicalProgressEnabled = false;
         public static int startingReliability = 30;
-        public static int maxReliability = 99;
+        public static int maxReliabilityLvl1 = 90;
+        public static int maxReliabilityLvl2 = 95;
+        public static int maxReliabilityLvl3 = 99;
         static float scienceToAdd = 2;
         static float maxScience = 10;
         #endregion
 
         #region Housekeeping
         Dictionary<string, PartReliability> partReliabilities = new Dictionary<string, PartReliability>();
+        Dictionary<string, int> techNodeStartingReliabilities = new Dictionary<string, int>();
         #endregion
 
         #region Overrides
@@ -64,12 +76,14 @@ namespace EVARepairs
         {
             base.OnLoad(node);
             loadPartReliabilities(node);
+            loadTechStartingReliabilityBonuses(node);
         }
 
         public override void OnSave(ConfigNode node)
         {
             base.OnSave(node);
             savePartReliabilities(node);
+            saveTechStartingReliabilityBonuses(node);
         }
 
         public void OnDestroy()
@@ -92,7 +106,7 @@ namespace EVARepairs
             {
                 partReliability = new PartReliability();
                 partReliability.partName = partName;
-                partReliability.reliability = startingReliability;
+                partReliability.reliability = GetStartingReliability();
 
                 partReliabilities.Add(partName, partReliability);
             }
@@ -100,6 +114,7 @@ namespace EVARepairs
             // Increment the reliability
             partReliability = partReliabilities[partName];
             partReliability.reliability += partDidFail ? UnityEngine.Random.Range(1, kPartFailureMaxReliabilityIncrease) : kPartReliabilityIncrease;
+            int maxReliability = GetMaxReliability();
             if (partReliability.reliability > maxReliability)
                 partReliability.reliability = maxReliability;
 
@@ -118,14 +133,45 @@ namespace EVARepairs
             partReliabilities[partName] = partReliability;
         }
 
+        public int GetStartingReliability()
+        {
+            if (HighLogic.CurrentGame.Mode != Game.Modes.CAREER && HighLogic.CurrentGame.Mode != Game.Modes.SCIENCE_SANDBOX)
+                return startingReliability;
+            int maxReliability = GetMaxReliability();
+            int adjustedStartingReliability = startingReliability;
+
+            // Adjust reliability based on unlocked tech nodes.
+            ProtoTechNode techNode = AssetBase.RnDTechTree.FindTech(kGeneralRocketry);
+            adjustedStartingReliability += getStartingReliabilityBonus(kGeneralRocketry);
+
+            techNode = AssetBase.RnDTechTree.FindTech(kAdvancedRocketry);
+            adjustedStartingReliability += getStartingReliabilityBonus(kAdvancedRocketry);
+
+            techNode = AssetBase.RnDTechTree.FindTech(kHeavyRocketry);
+            adjustedStartingReliability += getStartingReliabilityBonus(kHeavyRocketry);
+
+            techNode = AssetBase.RnDTechTree.FindTech(kHeavierRocketry);
+            adjustedStartingReliability += getStartingReliabilityBonus(kHeavierRocketry);
+
+            techNode = AssetBase.RnDTechTree.FindTech(kVeryHeavyRocketry);
+            adjustedStartingReliability += getStartingReliabilityBonus(kVeryHeavyRocketry);
+
+            // Don't go over maximum reliability allowed
+            if (adjustedStartingReliability > maxReliability)
+                adjustedStartingReliability = maxReliability;
+
+            return adjustedStartingReliability;
+        }
+
         public int GetReliability(string partName)
         {
+            int minimumReliability = GetStartingReliability();
             if (partReliabilities.ContainsKey(partName))
             {
                 PartReliability partReliability = partReliabilities[partName];
-                if (partReliability.reliability < startingReliability)
+                if (partReliability.reliability < minimumReliability)
                 {
-                    partReliability.reliability = startingReliability;
+                    partReliability.reliability = minimumReliability;
                     partReliabilities[partName] = partReliability;
                 }
                 return partReliabilities[partName].reliability;
@@ -134,15 +180,72 @@ namespace EVARepairs
             {
                 PartReliability partReliability = new PartReliability();
                 partReliability.partName = partName;
-                partReliability.reliability = startingReliability;
+                partReliability.reliability = minimumReliability;
 
                 partReliabilities.Add(partName, partReliability);
-                return startingReliability;
+                return minimumReliability;
             }
         }
+
+        public int GetMaxReliability()
+        {
+            if (HighLogic.CurrentGame.Mode != Game.Modes.CAREER && HighLogic.CurrentGame.Mode != Game.Modes.SCIENCE_SANDBOX)
+                return maxReliabilityLvl3;
+
+            // Max reliability depends upon the level of the R&D building.
+            float facilityLevel = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.ResearchAndDevelopment);
+
+            if (facilityLevel >= 1)
+                return maxReliabilityLvl3;
+            else if (facilityLevel >= 0.5f)
+                return maxReliabilityLvl2;
+            else
+                return maxReliabilityLvl1;
+        }
+
         #endregion
 
         #region Helpers
+        private int getStartingReliabilityBonus(string nodeName)
+        {
+            ProtoTechNode techNode = ResearchAndDevelopment.Instance.GetTechState(nodeName);
+
+            if (techNode == null || techNode.state == RDTech.State.Unavailable)
+                return 0;
+
+            else if (!techNodeStartingReliabilities.ContainsKey(techNode.techID))
+            {
+                techNodeStartingReliabilities.Add(techNode.techID, UnityEngine.Random.Range(kMinStartingReliabilityBonus, kMaxStartingReliabilityBonus));
+            }
+            else if (techNodeStartingReliabilities[techNode.techID] <= 0)
+            {
+                techNodeStartingReliabilities.Add(techNode.techID, UnityEngine.Random.Range(kMinStartingReliabilityBonus, kMaxStartingReliabilityBonus));
+            }
+
+            return techNodeStartingReliabilities[techNode.techID];
+        }
+
+        private void loadTechStartingReliabilityBonuses(ConfigNode node)
+        {
+            if (!node.HasNode(kTechNodeReliabilityName))
+                return;
+
+            ConfigNode[] nodes = node.GetNodes(kTechNodeReliabilityName);
+            ConfigNode reliabilityNode;
+            int bonusReliability = 0;
+            for (int index = 0; index < nodes.Length; index++)
+            {
+                reliabilityNode = nodes[index];
+                if (!reliabilityNode.HasValue(kTechNodeId) || !reliabilityNode.HasValue(kReliabilityValue))
+                    continue;
+
+                if (int.TryParse(reliabilityNode.GetValue(kReliabilityValue), out bonusReliability))
+                {
+                    techNodeStartingReliabilities.Add(reliabilityNode.GetValue(kTechNodeId), bonusReliability);
+                }
+            }
+        }
+
         private void loadPartReliabilities(ConfigNode node)
         {
             if (!node.HasNode(kPartReliabilityNode))
@@ -179,6 +282,23 @@ namespace EVARepairs
                 reliabilityNode.AddValue(kPartNameValue, reliabilities[index].partName);
                 reliabilityNode.AddValue(kReliabilityValue, reliabilities[index].reliability.ToString());
                 reliabilityNode.AddValue(kScienceAddedValue, reliabilities[index].scienceAdded.ToString());
+
+                node.AddNode(reliabilityNode);
+            }
+        }
+
+        private void saveTechStartingReliabilityBonuses(ConfigNode node)
+        {
+            if (techNodeStartingReliabilities.Keys.Count <= 0)
+                return;
+
+            string[] keys = techNodeStartingReliabilities.Keys.ToArray();
+            ConfigNode reliabilityNode;
+            for (int index = 0; index < keys.Length; index++)
+            {
+                reliabilityNode = new ConfigNode(kTechNodeReliabilityName);
+                reliabilityNode.AddValue(kTechNodeId, keys[index]);
+                reliabilityNode.AddValue(kReliabilityValue, techNodeStartingReliabilities[keys[index]].ToString());
 
                 node.AddNode(reliabilityNode);
             }

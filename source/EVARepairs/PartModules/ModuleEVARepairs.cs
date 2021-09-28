@@ -864,7 +864,7 @@ namespace EVARepairs
             int targetNumber = (int)(100 * (currentMTBF / 3600) / mtbf);
 
             // Account for reliability
-            if (EVARepairsScenario.reliabilityEnabled && reliability < EVARepairsScenario.maxReliability)
+            if (EVARepairsScenario.reliabilityEnabled && reliability < EVARepairsScenario.shared.GetMaxReliability())
             {
                 if (reliability <= 0)
                     reliability = EVARepairsScenario.shared.GetReliability(part.partName);
