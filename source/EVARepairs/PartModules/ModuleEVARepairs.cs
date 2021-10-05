@@ -6,6 +6,7 @@ using UnityEngine;
 using KSP.IO;
 using KSP.Localization;
 using System.Reflection;
+using ModuleWheels;
 
 namespace EVARepairs
 {
@@ -178,6 +179,12 @@ namespace EVARepairs
         /// </summary>
         [KSPField(guiActive = true, guiActiveEditor = true, guiName = "#LOC_EVAREPAIRS_mtbfTitle")]
         public string mtbfDisplay = string.Empty;
+
+        /// <summary>
+        /// Animation position of a stuck wheel.
+        /// </summary>
+        [KSPField(isPersistant = true)]
+        public float wheelStuckPosition = -1f;
         #endregion
 
         #region Housekeeping
@@ -193,6 +200,10 @@ namespace EVARepairs
         bool sasWasActive = false;
         bool probeIsHibernating = false;
         bool probeWasHibernating = false;
+        public ModuleWheelDeployment wheelDeployment = null;
+        float wheelDeployPosition = 0f;
+        float wheelRetractPosition = 0f;
+        KFSMState previousWheelState = null;
         #endregion
 
         #region IModuleInfo
@@ -326,8 +337,12 @@ namespace EVARepairs
         public virtual bool CanUpdateMTBF()
         {
             // If EVA Repairs is disabled, or the part needs maintenance, or the part is worn out, then we can't update.
-            if (!EVARepairsScenario.maintenanceEnabled || needsMaintenance || partWornOut)
+            if (!EVARepairsScenario.maintenanceEnabled || !EVARepairsScenario.krashSimulatorEnabled || needsMaintenance || partWornOut)
                 return false;
+
+            // If the part has deployable landing gear or legs, then we can update.
+            if (wheelDeployment != null)
+                return true;
 
             // If the part has an active reaction wheel, then we can update.
             if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && sasIsActive)
@@ -531,10 +546,16 @@ namespace EVARepairs
                 }
 
                 // Shutdown the probe core
-                else if (EVARepairsScenario.probeCoresCanFail && module is ModuleCommand)
+                else if (EVARepairsScenario.probeCoresCanFail && module is ModuleCommand && part.CrewCapacity == 0)
                 {
                     disableProbeCore(module);
                     disableModule = true;
+                }
+
+                // Stick the landing gear/leg
+                else if (EVARepairsScenario.landingGearCanFail && module == wheelDeployment)
+                {
+                    disableWheelDeployment();
                 }
 
                 // Now handle modules on our disable list.
@@ -573,9 +594,21 @@ namespace EVARepairs
                     continue;
                 }
 
+                // Handle deployable wheels/legs
+                else if (EVARepairsScenario.landingGearCanFail && module == wheelDeployment)
+                {
+                    wheelDeployment.Events["EventToggle"].active = true;
+                    wheelDeployment.deployedPosition = wheelDeployPosition;
+                    wheelDeployment.retractedPosition = wheelRetractPosition;
+                    wheelStuckPosition = -1f;
+                    continue;
+                }
+
                 // Handle other built-in modules
                 else if (module is ModuleEngines || module is ModuleGenerator || module is BaseConverter || module is ModuleCommand)
+                {
                     enableModule = true;
+                }
 
                 // If the module isn't on our list, or the enable flag isn't set, or we're trying to renable this module, then skip it.
                 if (!enableModule && (module == this || !breakbleModuleNames.Contains(module.moduleName)))
@@ -618,8 +651,13 @@ namespace EVARepairs
             bool checkFailed = false;
             if (dieRoll > targetNumber)
             {
-                // Immediately run out of MTBF. This will trigger part failure.
-                currentMTBF = UnityEngine.Random.Range(1, 10);
+                // Reduce current MTBF to 1-10 seconds to allow some time before the failure occurs.
+                if (wheelDeployment == null)
+                    currentMTBF = UnityEngine.Random.Range(1, 10);
+
+                // Immediately run out of MTBF. This will trigger part failure, and the gear will stop somewhere during its animation process.
+                else
+                    currentMTBF = TimeWarp.fixedDeltaTime;
                 checkFailed = true;
             }
 
@@ -655,6 +693,12 @@ namespace EVARepairs
 
             // Update reliability display
             updateReliabilityDisplay();
+
+            // Make sure player can't retract/extend the wheel/leg
+            if (EVARepairsScenario.landingGearCanFail && wheelDeployment != null && (needsMaintenance || partWornOut))
+            {
+                wheelDeployment.Events["EventToggle"].active = false;
+            }
         }
 
         public void OnDestroy()
@@ -733,6 +777,37 @@ namespace EVARepairs
         #endregion
 
         #region Helpers
+        private void disableWheelDeployment()
+        {
+            if (wheelStuckPosition <= 0)
+                wheelStuckPosition = UnityEngine.Random.Range(0.1f, 1);
+
+            if (wheelDeployment.fsm.CurrentState == wheelDeployment.st_deploying)
+            {
+                if (wheelDeployment.position > wheelStuckPosition)
+                {
+                    wheelStuckPosition = wheelDeployment.position;
+                    wheelDeployment.deployedPosition = wheelStuckPosition;
+                }
+                else
+                {
+                    wheelDeployment.deployedPosition = wheelStuckPosition;
+                }
+            }
+            else if (wheelDeployment.fsm.CurrentState == wheelDeployment.st_retracting)
+            {
+                if (wheelDeployment.position < wheelStuckPosition)
+                {
+                    wheelStuckPosition = wheelDeployment.position;
+                    wheelDeployment.retractedPosition = wheelStuckPosition;
+                }
+                else
+                {
+                    wheelDeployment.retractedPosition = wheelStuckPosition;
+                }
+            }
+        }
+
         private void disableProbeCore(PartModule module)
         {
             BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
@@ -845,6 +920,18 @@ namespace EVARepairs
                 probeWasHibernating = probeIsHibernating;
             }
 
+            // Check wheels
+            if (EVARepairsScenario.landingGearCanFail && wheelDeployment != null && wheelDeployment.fsm.CurrentState != previousWheelState)
+            {
+                previousWheelState = wheelDeployment.fsm.CurrentState;
+
+                // Only check for transition between extending and retracting.
+                if (wheelDeployment.fsm.CurrentState == wheelDeployment.st_retracting || wheelDeployment.fsm.CurrentState == wheelDeployment.st_deploying)
+                {
+                    checkReliability = true;
+                }
+            }
+
             // Check event cards
 
             return checkReliability;
@@ -950,6 +1037,25 @@ namespace EVARepairs
                 {
                     probeIsHibernating = probeCore.IsHibernating;
                     probeWasHibernating = probeIsHibernating;
+                }
+            }
+
+            wheelDeployment = part.FindModuleImplementing<ModuleWheelDeployment>();
+            if (wheelDeployment != null)
+            {
+                wheelDeployPosition = wheelDeployment.deployedPosition;
+                wheelRetractPosition = wheelDeployment.retractedPosition;
+                previousWheelState = wheelDeployment.fsm.CurrentState;
+
+                if (wheelStuckPosition > 0 && (needsMaintenance || partWornOut))
+                {
+                    wheelDeployment.deployedPosition = wheelStuckPosition;
+                    wheelDeployment.retractedPosition = wheelStuckPosition;
+                    wheelDeployment.position = wheelStuckPosition;
+                    if (wheelDeployment.fsm.CurrentState == wheelDeployment.st_deployed)
+                        wheelDeployment.fsm.RunEvent(wheelDeployment.on_retract);
+                    else if (wheelDeployment.fsm.CurrentState == wheelDeployment.st_retracted)
+                        wheelDeployment.fsm.RunEvent(wheelDeployment.on_deploy);
                 }
             }
         }

@@ -17,6 +17,7 @@ namespace EVARepairs
         public string partName;
         public int reliability;
         public float scienceAdded;
+        public float maxScience;
     }
 
     [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.EDITOR, GameScenes.FLIGHT)]
@@ -29,6 +30,7 @@ namespace EVARepairs
         const string kTechNodeReliabilityName = "TechNodeReliabilityBonus";
         const string kTechNodeId = "TechId";
         const string kScienceAddedValue = "scienceAdded";
+        const string kMaxScience = "maxScience";
         const int kPartFailureMaxReliabilityIncrease = 10;
         const int kPartReliabilityIncrease = 2;
         const float kMessageDuration = 5f;
@@ -49,6 +51,8 @@ namespace EVARepairs
         public static bool reliabilityEnabled = false;
         public static bool reactionWheelsCanFail = false;
         public static bool probeCoresCanFail = false;
+        public static bool landingGearCanFail = false;
+        public static bool krashSimulatorEnabled = false;
         public static bool technologicalProgressEnabled = false;
         public static int startingReliability = 30;
         public static int maxReliabilityLvl1 = 90;
@@ -90,6 +94,11 @@ namespace EVARepairs
         {
             GameEvents.OnGameSettingsApplied.Remove(onGameSettingsApplied);
         }
+
+        public void Update()
+        {
+            krashSimulatorEnabled = KRASHWrapper.simulationActive();
+        }
         #endregion
 
         #region API
@@ -118,12 +127,28 @@ namespace EVARepairs
             if (partReliability.reliability > maxReliability)
                 partReliability.reliability = maxReliability;
 
-            // If the check failed then add a bit of Science
-            if (partDidFail && partReliability.scienceAdded < maxScience && (HighLogic.CurrentGame.Mode == Game.Modes.CAREER || HighLogic.CurrentGame.Mode == Game.Modes.SCIENCE_SANDBOX))
-            {
-                partReliability.scienceAdded += scienceToAdd;
+            // Setup max science
+            if (partReliability.maxScience <= 0)
+                partReliability.maxScience = UnityEngine.Random.Range(1, maxScience);
 
-                ResearchAndDevelopment.Instance.AddScience(scienceToAdd, TransactionReasons.ScienceTransmission);
+            // If the check failed then add a bit of Science
+            if (partDidFail && partReliability.scienceAdded < partReliability.maxScience && (HighLogic.CurrentGame.Mode == Game.Modes.CAREER || HighLogic.CurrentGame.Mode == Game.Modes.SCIENCE_SANDBOX))
+            {
+                float scienceGained = partReliability.maxScience / UnityEngine.Random.Range(1f, 10f);
+                scienceGained = scienceGained * HighLogic.CurrentGame.Parameters.Career.ScienceGainMultiplier;
+
+                if (partReliability.scienceAdded + scienceGained > partReliability.maxScience)
+                    scienceGained = partReliability.maxScience - partReliability.scienceAdded;
+
+                // Just in case we go negative...
+                if (scienceGained <= 0)
+                {
+                    partReliabilities[partName] = partReliability;
+                    return;
+                }
+
+                partReliability.scienceAdded += scienceGained;
+                ResearchAndDevelopment.Instance.AddScience(scienceGained, TransactionReasons.ScienceTransmission);
                 
                 string message = Localizer.Format("#LOC_EVAREPAIRS_scienceAdded", new string[2] { string.Format("{0:n1}", scienceToAdd), PartLoader.getPartInfoByName(partName).title } );
                 ScreenMessages.PostScreenMessage(message, kMessageDuration, ScreenMessageStyle.UPPER_LEFT);
@@ -264,6 +289,8 @@ namespace EVARepairs
                 reliability.partName = reliabilityNode.GetValue(kPartNameValue);
                 int.TryParse(reliabilityNode.GetValue(kReliabilityValue), out reliability.reliability);
                 float.TryParse(reliabilityNode.GetValue(kScienceAddedValue), out reliability.scienceAdded);
+                if (reliabilityNode.HasValue(kMaxScience))
+                    float.TryParse(reliabilityNode.GetValue(kMaxScience), out reliability.maxScience);
 
                 partReliabilities.Add(reliability.partName, reliability);
             }
@@ -282,6 +309,7 @@ namespace EVARepairs
                 reliabilityNode.AddValue(kPartNameValue, reliabilities[index].partName);
                 reliabilityNode.AddValue(kReliabilityValue, reliabilities[index].reliability.ToString());
                 reliabilityNode.AddValue(kScienceAddedValue, reliabilities[index].scienceAdded.ToString());
+                reliabilityNode.AddValue(kMaxScience, reliabilities[index].maxScience.ToString());
 
                 node.AddNode(reliabilityNode);
             }
@@ -313,6 +341,7 @@ namespace EVARepairs
             startingReliability = EVARepairsSettings.StartingReliability;
             reactionWheelsCanFail = EVARepairsSettings.ReactionWheelsCanFail;
             probeCoresCanFail = EVARepairsSettings.ProbeCoresCanFail;
+            landingGearCanFail = EVARepairsSettings.LandingGearCanFail;
             technologicalProgressEnabled = EVARepairsSettings.TechnologicalProgressEnabled;
         }
         #endregion

@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EVARepairsUnity.Plugins", "EVARepairsUnity.Plugins.csproj", "{F6CC371F-D64D-6354-6F3B-DCC012EF36EB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EVARepairsUnity.Editor", "EVARepairsUnity.Editor.csproj", "{E7D3CEDF-0290-6045-F65C-F5D19770AA24}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F6CC371F-D64D-6354-6F3B-DCC012EF36EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6CC371F-D64D-6354-6F3B-DCC012EF36EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6CC371F-D64D-6354-6F3B-DCC012EF36EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6CC371F-D64D-6354-6F3B-DCC012EF36EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E7D3CEDF-0290-6045-F65C-F5D19770AA24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7D3CEDF-0290-6045-F65C-F5D19770AA24}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7D3CEDF-0290-6045-F65C-F5D19770AA24}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7D3CEDF-0290-6045-F65C-F5D19770AA24}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

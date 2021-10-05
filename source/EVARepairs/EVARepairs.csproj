@@ -97,6 +97,7 @@
     <Compile Include="PartModules\ModuleEVARepairs.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SettingsAndScenario\EVARepairsSettings.cs" />
+    <Compile Include="Wrappers\KRASHWrapper.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
