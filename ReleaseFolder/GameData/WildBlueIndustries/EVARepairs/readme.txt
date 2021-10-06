@@ -12,20 +12,11 @@ GameData
 	WildBlueIndustries
 		EVARepairs
 
-New Parts
-
-- T-800 T.H.O.M.P.B.E.R.R.Y. Repair Bot: This advanced robot is capable of making repairs on broken parts in place of an engineer. It can also repair tires, solar arrays, and deployable antennas, and it can even repack parachutes. It has a small storage compartment for holding EVA Repair Kits.
-- T-800 Micro Wheel: This wheel is specially scaled for the T-800 Repair Bot for those times when you need to drive around and make repairs.
-- T-800 Micro Docking Port: This is an exceptionally small docking port that has been scaled for the T-800 Repair Bot.
-
 Changes
 
-- Deployable landing gear and deployable landing legs can now break. You'll need to enable the "Deployable landing gear and legs can break" difficulty option.
-- If KRASH is installed, then EVA Repairs will be disabled while a KRASH simulation is running.
-- The max science that a part can gain when the part's activation check fails will now vary between 1 and 10 science points.
-- The science gained when the part fails will also vary, up to the maximum possible science that can be gained for that part.
-- The science gained when the part fails will now respect the science gain mulitplier game difficulty setting.
-- Fixed issue where EVA Repairs wasn't being added to probe cores that had no reaction wheels.
+- Fixed issue where KRASH support was preventing parts from breaking.
+- Fixed issue where broken landing gear could still be toggled through the Gear action group.
+- Fixed issue where reaction wheels could fail even if they were toggled off.
 
 ---LICENSE---
 Art Assets, including .mu, .png, and .dds files are copyright 2021 by Michael Billard, All Rights Reserved.

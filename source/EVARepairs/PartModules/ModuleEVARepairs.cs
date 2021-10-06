@@ -62,6 +62,14 @@ namespace EVARepairs
                 reactionWheel.OnActive();
             }
         }
+
+        public bool isEnabled
+        {
+            get
+            {
+                return reactionWheel.wheelState == ModuleReactionWheel.WheelState.Active;
+            }
+        }
     }
     #endregion
 
@@ -88,6 +96,9 @@ namespace EVARepairs
         /// </summary>
         [KSPField]
         public bool debugMode = false;
+
+        [KSPField]
+        public bool updateReliability = true;
 
         /// <summary>
         /// Display string for the status.
@@ -204,6 +215,9 @@ namespace EVARepairs
         float wheelDeployPosition = 0f;
         float wheelRetractPosition = 0f;
         KFSMState previousWheelState = null;
+        KSPActionGroup wheelActionGroup;
+        [KSPField(isPersistant = true)]
+        public string actionGroupId = string.Empty;
         #endregion
 
         #region IModuleInfo
@@ -337,7 +351,9 @@ namespace EVARepairs
         public virtual bool CanUpdateMTBF()
         {
             // If EVA Repairs is disabled, or the part needs maintenance, or the part is worn out, then we can't update.
-            if (!EVARepairsScenario.maintenanceEnabled || !EVARepairsScenario.krashSimulatorEnabled || needsMaintenance || partWornOut)
+            if (!EVARepairsScenario.maintenanceEnabled || needsMaintenance || partWornOut)
+                return false;
+            else if (EVARepairsScenario.krashSimulatorEnabled)
                 return false;
 
             // If the part has deployable landing gear or legs, then we can update.
@@ -345,7 +361,7 @@ namespace EVARepairs
                 return true;
 
             // If the part has an active reaction wheel, then we can update.
-            if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && sasIsActive)
+            if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && sasIsActive && reactionWheelState.isEnabled)
                 return true;
 
             // If the part has a probe core that's not hibernating, then we can update.
@@ -600,6 +616,10 @@ namespace EVARepairs
                     wheelDeployment.Events["EventToggle"].active = true;
                     wheelDeployment.deployedPosition = wheelDeployPosition;
                     wheelDeployment.retractedPosition = wheelRetractPosition;
+                    if (wheelActionGroup != KSPActionGroup.None)
+                        wheelDeployment.Actions["ActionToggle"].actionGroup = wheelActionGroup;
+                    else
+                        wheelDeployment.Actions["ActionToggle"].actionGroup = KSPActionGroup.Gear;
                     wheelStuckPosition = -1f;
                     continue;
                 }
@@ -662,7 +682,7 @@ namespace EVARepairs
             }
 
             // Update reliability
-            if (EVARepairsScenario.reliabilityEnabled)
+            if (EVARepairsScenario.reliabilityEnabled && updateReliability)
                 EVARepairsScenario.shared.UpdateReliability(part.partInfo.name, checkFailed);
         }
         #endregion
@@ -698,6 +718,7 @@ namespace EVARepairs
             if (EVARepairsScenario.landingGearCanFail && wheelDeployment != null && (needsMaintenance || partWornOut))
             {
                 wheelDeployment.Events["EventToggle"].active = false;
+                wheelDeployment.Actions["ActionToggle"].actionGroup = KSPActionGroup.None;
             }
         }
 
@@ -712,6 +733,8 @@ namespace EVARepairs
         public override void OnStart(StartState state)
         {
             base.OnStart(state);
+            if (!HighLogic.LoadedSceneIsFlight && !HighLogic.LoadedSceneIsEditor)
+                return;
             findModulesThatFail();
 
             if (HighLogic.LoadedSceneIsFlight)
@@ -774,6 +797,19 @@ namespace EVARepairs
 
             updateReliabilityDisplay();
         }
+
+        public override void OnLoad(ConfigNode node)
+        {
+            base.OnLoad(node);
+            if (!string.IsNullOrEmpty(actionGroupId))
+                wheelActionGroup = (KSPActionGroup)Enum.Parse(typeof(KSPActionGroup), actionGroupId);
+        }
+
+        public override void OnSave(ConfigNode node)
+        {
+            actionGroupId = wheelActionGroup.ToString();
+            base.OnSave(node);
+        }
         #endregion
 
         #region Helpers
@@ -806,6 +842,8 @@ namespace EVARepairs
                     wheelDeployment.retractedPosition = wheelStuckPosition;
                 }
             }
+
+            wheelActionGroup = wheelDeployment.Actions["ActionToggle"].actionGroup;
         }
 
         private void disableProbeCore(PartModule module)
@@ -1056,6 +1094,7 @@ namespace EVARepairs
                         wheelDeployment.fsm.RunEvent(wheelDeployment.on_retract);
                     else if (wheelDeployment.fsm.CurrentState == wheelDeployment.st_retracted)
                         wheelDeployment.fsm.RunEvent(wheelDeployment.on_deploy);
+                    wheelActionGroup = wheelDeployment.Actions["ActionToggle"].actionGroup;
                 }
             }
         }
