@@ -95,10 +95,10 @@ namespace EVARepairs
         public override bool Enabled(System.Reflection.MemberInfo member, GameParameters parameters)
         {
             if (member.Name == "startingReliability" || member.Name == "technologicalProgressEnabled")
-                return reliabilityEnabled;
+                return maintenanceEnabled && reliabilityEnabled;
 
             else if (member.Name == "reliabilityEnabled")
-                return canFailOnActivation;
+                return maintenanceEnabled && canFailOnActivation;
 
             else
                 return member.Name == "maintenanceEnabled" ? true : maintenanceEnabled;
@@ -111,6 +111,12 @@ namespace EVARepairs
             {
                 EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
                 return settings.maintenanceEnabled;
+            }
+
+            set
+            {
+                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
+                settings.maintenanceEnabled = value;
             }
         }
 

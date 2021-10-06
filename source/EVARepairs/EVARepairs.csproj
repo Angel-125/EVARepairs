@@ -90,6 +90,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AppButton\EVARepairsAppButton.cs" />
     <Compile Include="PartModules\ModuleEVABotRepairs.cs" />
     <Compile Include="SettingsAndScenario\EVARepairsLoader.cs" />
     <Compile Include="SettingsAndScenario\EVARepairsScenario.cs" />
@@ -97,7 +98,9 @@
     <Compile Include="PartModules\ModuleEVARepairs.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SettingsAndScenario\EVARepairsSettings.cs" />
-    <Compile Include="Wrappers\KRASHWrapper.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Wrappers\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

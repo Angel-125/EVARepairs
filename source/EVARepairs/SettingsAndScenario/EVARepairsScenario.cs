@@ -52,7 +52,6 @@ namespace EVARepairs
         public static bool reactionWheelsCanFail = false;
         public static bool probeCoresCanFail = false;
         public static bool landingGearCanFail = false;
-        public static bool krashSimulatorEnabled = false;
         public static bool technologicalProgressEnabled = false;
         public static int startingReliability = 30;
         public static int maxReliabilityLvl1 = 90;
@@ -95,10 +94,6 @@ namespace EVARepairs
             GameEvents.OnGameSettingsApplied.Remove(onGameSettingsApplied);
         }
 
-        public void Update()
-        {
-            krashSimulatorEnabled = KRASHWrapper.simulationActive();
-        }
         #endregion
 
         #region API

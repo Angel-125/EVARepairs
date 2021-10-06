@@ -353,8 +353,6 @@ namespace EVARepairs
             // If EVA Repairs is disabled, or the part needs maintenance, or the part is worn out, then we can't update.
             if (!EVARepairsScenario.maintenanceEnabled || needsMaintenance || partWornOut)
                 return false;
-            else if (EVARepairsScenario.krashSimulatorEnabled)
-                return false;
 
             // If the part has deployable landing gear or legs, then we can update.
             if (wheelDeployment != null)

@@ -14,14 +14,12 @@ GameData
 
 Changes
 
-- Fixed issue where KRASH support was preventing parts from breaking.
-- Fixed issue where broken landing gear could still be toggled through the Gear action group.
-- Fixed issue where reaction wheels could fail even if they were toggled off.
+- Removed KRASH support since the wrapper was causing NREs.
+- Added EVA Repairs app button. This button toggles EVA Repairs on and off. Look for the gear and wrench icon in the KSP App toolbar. It is available in the VAB/SPH and in flight.
+- Fixed issue where some difficulty options were appearing even when EVA Repairs was disabled.
 
 ---LICENSE---
 Art Assets, including .mu, .png, and .dds files are copyright 2021 by Michael Billard, All Rights Reserved.
-
-KRASHWrapper source is GPLV3 and provided courtesy of Linuxgurugamer.
 
 Wild Blue Industries is trademarked by Michael Billard. All rights reserved.
 Note that Wild Blue Industries is a ficticious entity 
