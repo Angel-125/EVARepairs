@@ -358,12 +358,17 @@ namespace EVARepairs
             if (wheelDeployment != null)
                 return true;
 
+            // If the part has a probe core that's not hibernating, then we can update.
+            if (EVARepairsScenario.probeCoresCanFail && probeCore != null)
+            {
+                if (probeCore.hibernateOnWarp && TimeWarp.CurrentRateIndex > 0)
+                    return false;
+
+                return !probeCore.IsHibernating;
+            }
+
             // If the part has an active reaction wheel, then we can update.
             if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && sasIsActive && reactionWheelState.isEnabled)
-                return true;
-
-            // If the part has a probe core that's not hibernating, then we can update.
-            if (EVARepairsScenario.probeCoresCanFail && probeCore != null && !probeIsHibernating)
                 return true;
 
             // If the part has no engine, generator, or converter, then we can update.
@@ -950,6 +955,13 @@ namespace EVARepairs
             // Check probe core hibernation
             if (EVARepairsScenario.probeCoresCanFail && probeCore != null)
             {
+                if (probeCore.IsHibernating || (probeCore.hibernateOnWarp && TimeWarp.CurrentRateIndex > 0))
+                {
+                    probeIsHibernating = true;
+                    probeWasHibernating = false;
+                    return false;
+                }
+
                 probeIsHibernating = probeCore.IsHibernating;
                 if (probeIsHibernating != probeWasHibernating)
                     checkReliability = true;

@@ -24,6 +24,8 @@ namespace EVARepairs
     public class EVARepairsScenario: ScenarioModule
     {
         #region Constants
+        const string kTechUnlockBonusNode = "TECH_UNLOCK_BONUS";
+        const string kNodeName = "name";
         const string kPartReliabilityNode = "PartReliability";
         const string kPartNameValue = "partName";
         const string kReliabilityValue = "reliability";
@@ -34,11 +36,6 @@ namespace EVARepairs
         const int kPartFailureMaxReliabilityIncrease = 10;
         const int kPartReliabilityIncrease = 2;
         const float kMessageDuration = 5f;
-        const string kGeneralRocketry = "generalRocketry";
-        const string kAdvancedRocketry = "advRocketry";
-        const string kHeavyRocketry = "heavyRocketry";
-        const string kHeavierRocketry = "heavierRocketry";
-        const string kVeryHeavyRocketry = "veryHeavyRocketry";
         const int kMinStartingReliabilityBonus = 1;
         const int kMaxStartingReliabilityBonus = 10;
         #endregion
@@ -64,6 +61,7 @@ namespace EVARepairs
         #region Housekeeping
         Dictionary<string, PartReliability> partReliabilities = new Dictionary<string, PartReliability>();
         Dictionary<string, int> techNodeStartingReliabilities = new Dictionary<string, int>();
+        List<string> techUnlockBonusNodes = new List<string>();
         #endregion
 
         #region Overrides
@@ -80,6 +78,7 @@ namespace EVARepairs
             base.OnLoad(node);
             loadPartReliabilities(node);
             loadTechStartingReliabilityBonuses(node);
+            loadTechUnlockBonusNodes();
         }
 
         public override void OnSave(ConfigNode node)
@@ -161,20 +160,11 @@ namespace EVARepairs
             int adjustedStartingReliability = startingReliability;
 
             // Adjust reliability based on unlocked tech nodes.
-            ProtoTechNode techNode = AssetBase.RnDTechTree.FindTech(kGeneralRocketry);
-            adjustedStartingReliability += getStartingReliabilityBonus(kGeneralRocketry);
-
-            techNode = AssetBase.RnDTechTree.FindTech(kAdvancedRocketry);
-            adjustedStartingReliability += getStartingReliabilityBonus(kAdvancedRocketry);
-
-            techNode = AssetBase.RnDTechTree.FindTech(kHeavyRocketry);
-            adjustedStartingReliability += getStartingReliabilityBonus(kHeavyRocketry);
-
-            techNode = AssetBase.RnDTechTree.FindTech(kHeavierRocketry);
-            adjustedStartingReliability += getStartingReliabilityBonus(kHeavierRocketry);
-
-            techNode = AssetBase.RnDTechTree.FindTech(kVeryHeavyRocketry);
-            adjustedStartingReliability += getStartingReliabilityBonus(kVeryHeavyRocketry);
+            int count = techUnlockBonusNodes.Count;
+            for (int index = 0; index < count; index++)
+            {
+                adjustedStartingReliability += getStartingReliabilityBonus(techUnlockBonusNodes[index]);
+            }
 
             // Don't go over maximum reliability allowed
             if (adjustedStartingReliability > maxReliability)
@@ -243,6 +233,25 @@ namespace EVARepairs
             }
 
             return techNodeStartingReliabilities[techNode.techID];
+        }
+
+        private void loadTechUnlockBonusNodes()
+        {
+            ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes(kTechUnlockBonusNode);
+            ConfigNode node;
+            string nodeName;
+
+            for (int index = 0; index < nodes.Length; index++)
+            {
+                node = nodes[index];
+                if (!node.HasValue(kNodeName))
+                    continue;
+
+                nodeName = node.GetValue(kNodeName);
+
+                if (!techUnlockBonusNodes.Contains(nodeName))
+                    techUnlockBonusNodes.Add(nodeName);
+            }
         }
 
         private void loadTechStartingReliabilityBonuses(ConfigNode node)

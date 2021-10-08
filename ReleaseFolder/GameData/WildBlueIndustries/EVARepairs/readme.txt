@@ -14,9 +14,10 @@ GameData
 
 Changes
 
-- Removed KRASH support since the wrapper was causing NREs.
-- Added EVA Repairs app button. This button toggles EVA Repairs on and off. Look for the gear and wrench icon in the KSP App toolbar. It is available in the VAB/SPH and in flight.
-- Fixed issue where some difficulty options were appearing even when EVA Repairs was disabled.
+- Added new TECH_UNLOCK_BONUS config node that specifies which nodes will provide a starting reliability bonus. This config node makes it possible to support
+non-stock tech trees.
+- Removed hard-coded stock tech-unlock bonus nodes and moved them to the TECH_UNLOCK_BONUS config nodes found in BaselineConfig.
+- Fixed issue where probe cores that hibernate on warp were still losing MTBF while timewarping.
 
 ---LICENSE---
 Art Assets, including .mu, .png, and .dds files are copyright 2021 by Michael Billard, All Rights Reserved.

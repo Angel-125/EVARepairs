@@ -68,6 +68,9 @@ namespace EVARepairs.AppButton
             {
                 Texture2D appIcon = maintenanceEnabled ? appIconEnabled : appIconDisabled;
                 appLauncherButton.SetTexture(appIcon);
+
+                string message = maintenanceEnabled ? Localizer.Format("#LOC_EVAREPAIRS_enabled") : Localizer.Format("#LOC_EVAREPAIRS_disabled");
+                ScreenMessages.PostScreenMessage(message, 5f, ScreenMessageStyle.UPPER_CENTER);
             }
         }
 
