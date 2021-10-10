@@ -32,9 +32,6 @@ namespace EVARepairs
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsWheelsDesc", toolTip = "#LOC_EVAREPAIRS_settingsWheelsTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool reactionWheelFailureEnabled = false;
 
-        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsProbeCoresDesc", toolTip = "#LOC_EVAREPAIRS_settingsProbeCoresTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
-        public bool probeCoresCanFail = false;
-
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsLandingGearDesc", toolTip = "#LOC_EVAREPAIRS_settingsLandingGearTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool landingGearCanFail = false;
         #region CustomParameterNode
@@ -171,15 +168,6 @@ namespace EVARepairs
             {
                 EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
                 return settings.landingGearCanFail;
-            }
-        }
-
-        public static bool ProbeCoresCanFail
-        {
-            get
-            {
-                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
-                return settings.probeCoresCanFail;
             }
         }
 

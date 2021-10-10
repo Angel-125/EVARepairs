@@ -344,7 +344,6 @@ namespace EVARepairs
             reliabilityEnabled = EVARepairsSettings.ReliabilityEnabled;
             startingReliability = EVARepairsSettings.StartingReliability;
             reactionWheelsCanFail = EVARepairsSettings.ReactionWheelsCanFail;
-            probeCoresCanFail = EVARepairsSettings.ProbeCoresCanFail;
             landingGearCanFail = EVARepairsSettings.LandingGearCanFail;
             technologicalProgressEnabled = EVARepairsSettings.TechnologicalProgressEnabled;
         }

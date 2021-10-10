@@ -12,12 +12,14 @@ GameData
 	WildBlueIndustries
 		EVARepairs
 
+New Part
+
+- T-800 Recharging Station: This small storage cabinet can dock a T-800 Repair Bot inside. It also doubles a small radially attached service bay.
+
 Changes
 
-- Added new TECH_UNLOCK_BONUS config node that specifies which nodes will provide a starting reliability bonus. This config node makes it possible to support
-non-stock tech trees.
-- Removed hard-coded stock tech-unlock bonus nodes and moved them to the TECH_UNLOCK_BONUS config nodes found in BaselineConfig.
-- Fixed issue where probe cores that hibernate on warp were still losing MTBF while timewarping.
+- Removed ability for probe cores to fail. Game testing shows that they fail too early for interplanetary missions, especially since players are likely to forget to hibernate the probe.
+- Deployable landing gears and legs will only lose MTBF if they are retracting or extending.
 
 ---LICENSE---
 Art Assets, including .mu, .png, and .dds files are copyright 2021 by Michael Billard, All Rights Reserved.

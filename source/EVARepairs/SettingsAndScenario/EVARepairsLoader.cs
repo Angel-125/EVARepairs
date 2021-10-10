@@ -77,20 +77,6 @@ namespace EVARepairs.SettingsAndScenario
                     return;
 
                 // If the part doesn't have one of the supported modules, then we're done.
-                else if (availablePart.partPrefab.HasModuleImplementing<ModuleCommand>())
-                {
-                    if (availablePart.partPrefab.CrewCapacity > 0)
-                    {
-                        if (!availablePart.partPrefab.HasModuleImplementing<ModuleGenerator>() &&
-                            !availablePart.partPrefab.HasModuleImplementing<ModuleEngines>() &&
-                            !availablePart.partPrefab.HasModuleImplementing<BaseConverter>() &&
-                            !availablePart.partPrefab.HasModuleImplementing<ModuleReactionWheel>() &&
-                            !availablePart.partPrefab.HasModuleImplementing<ModuleWheelDeployment>()
-                        )
-                            return;
-                    }
-                }
-
                 else if (!availablePart.partPrefab.HasModuleImplementing<ModuleGenerator>() &&
                     !availablePart.partPrefab.HasModuleImplementing<ModuleEngines>() &&
                     !availablePart.partPrefab.HasModuleImplementing<BaseConverter>() &&

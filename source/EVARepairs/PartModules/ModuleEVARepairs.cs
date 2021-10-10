@@ -205,12 +205,9 @@ namespace EVARepairs
         List<bool> engineStates = null;
         List<bool> converterStates = null;
         ReactionWheelState reactionWheelState = null;
-        ModuleCommand probeCore = null;
         double mtbfRateMultiplier = 1f;
         bool sasIsActive = false;
         bool sasWasActive = false;
-        bool probeIsHibernating = false;
-        bool probeWasHibernating = false;
         public ModuleWheelDeployment wheelDeployment = null;
         float wheelDeployPosition = 0f;
         float wheelRetractPosition = 0f;
@@ -355,17 +352,8 @@ namespace EVARepairs
                 return false;
 
             // If the part has deployable landing gear or legs, then we can update.
-            if (wheelDeployment != null)
+            if (wheelDeployment != null && (wheelDeployment.fsm.CurrentState == wheelDeployment.st_deploying || wheelDeployment.fsm.CurrentState == wheelDeployment.st_retracting))
                 return true;
-
-            // If the part has a probe core that's not hibernating, then we can update.
-            if (EVARepairsScenario.probeCoresCanFail && probeCore != null)
-            {
-                if (probeCore.hibernateOnWarp && TimeWarp.CurrentRateIndex > 0)
-                    return false;
-
-                return !probeCore.IsHibernating;
-            }
 
             // If the part has an active reaction wheel, then we can update.
             if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && sasIsActive && reactionWheelState.isEnabled)
@@ -628,7 +616,7 @@ namespace EVARepairs
                 }
 
                 // Handle other built-in modules
-                else if (module is ModuleEngines || module is ModuleGenerator || module is BaseConverter || module is ModuleCommand)
+                else if (module is ModuleEngines || module is ModuleGenerator || module is BaseConverter)
                 {
                     enableModule = true;
                 }
@@ -952,22 +940,6 @@ namespace EVARepairs
                 sasWasActive = sasIsActive;
             }
 
-            // Check probe core hibernation
-            if (EVARepairsScenario.probeCoresCanFail && probeCore != null)
-            {
-                if (probeCore.IsHibernating || (probeCore.hibernateOnWarp && TimeWarp.CurrentRateIndex > 0))
-                {
-                    probeIsHibernating = true;
-                    probeWasHibernating = false;
-                    return false;
-                }
-
-                probeIsHibernating = probeCore.IsHibernating;
-                if (probeIsHibernating != probeWasHibernating)
-                    checkReliability = true;
-                probeWasHibernating = probeIsHibernating;
-            }
-
             // Check wheels
             if (EVARepairsScenario.landingGearCanFail && wheelDeployment != null && wheelDeployment.fsm.CurrentState != previousWheelState)
             {
@@ -1075,16 +1047,6 @@ namespace EVARepairs
                     reactionWheelState = new ReactionWheelState(reactionWheel);
                     sasIsActive = FlightGlobals.ActiveVessel.ActionGroups[KSPActionGroup.SAS];
                     sasWasActive = sasIsActive;
-                }
-            }
-
-            if (part.CrewCapacity == 0)
-            {
-                probeCore = part.FindModuleImplementing<ModuleCommand>();
-                if (probeCore != null)
-                {
-                    probeIsHibernating = probeCore.IsHibernating;
-                    probeWasHibernating = probeIsHibernating;
                 }
             }
 
