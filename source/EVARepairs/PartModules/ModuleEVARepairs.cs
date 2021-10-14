@@ -116,8 +116,8 @@ namespace EVARepairs
         /// In hours, how long until the part needs maintenance in order to function. Default is 600. Time is counted even when the vessel isn't active!
         /// Note: The part module is smart and if the part has at least one engine or resource converter then the engine/converter needs to be running for the current mtbf to be reduced.
         /// </summary>
-        [KSPField]
-        public double mtbf = 600;
+        [KSPField(isPersistant = true)]
+        public double mtbf = -1;
 
         /// <summary>
         /// In seconds, the current time remaining until the part needs maintenance in order to function.
@@ -391,6 +391,7 @@ namespace EVARepairs
             return false;
         }
 
+
         /// <summary>
         /// Updates the rate multiplier that is applied when decrementing MTBF.
         /// </summary>
@@ -398,6 +399,21 @@ namespace EVARepairs
         public virtual void SetRateMultiplier(double rateMultiplier)
         {
             mtbfRateMultiplier = rateMultiplier;
+        }
+
+        /// <summary>
+        /// Updates the mean time between failures.
+        /// </summary>
+        public virtual void UpdateMTBF(double elapsedTime, bool canUpdateMTBF)
+        {
+            if (!canUpdateMTBF)
+                return;
+
+            // Account for time spent away...
+            currentMTBF -= (elapsedTime * mtbfRateMultiplier);
+            lastUpdated = Planetarium.GetUniversalTime();
+
+            updateMaintenanceStatus();
         }
 
         /// <summary>
@@ -412,6 +428,11 @@ namespace EVARepairs
             currentMTBF -= (elapsedTime * mtbfRateMultiplier);
             lastUpdated = Planetarium.GetUniversalTime();
 
+            updateMaintenanceStatus();
+        }
+
+        protected virtual void updateMaintenanceStatus()
+        {
             if (currentMTBF <= 0)
             {
                 // If the part hasn't worn out yet then it just needs maintenance.
@@ -695,8 +716,12 @@ namespace EVARepairs
                 return;
 
             // Account for time spent away...
+            bool canUpdateMTBF = CanUpdateMTBF();
             double elapsedTime = Planetarium.GetUniversalTime() - lastUpdated;
-            UpdateMTBF(elapsedTime);
+            if (canUpdateMTBF)
+                UpdateMTBF(elapsedTime, canUpdateMTBF);
+            else
+                lastUpdated = Planetarium.GetUniversalTime();
 
             // Perform activation check if needed
             if (shouldCheckActivation())
@@ -726,6 +751,7 @@ namespace EVARepairs
             base.OnStart(state);
             if (!HighLogic.LoadedSceneIsFlight && !HighLogic.LoadedSceneIsEditor)
                 return;
+            debugMode = EVARepairsScenario.debugMode;
             findModulesThatFail();
 
             if (HighLogic.LoadedSceneIsFlight)
@@ -761,6 +787,10 @@ namespace EVARepairs
             // Account for in-field parts that haven't been initialized with reliability.
             if (reliability <= 0)
                 reliability = EVARepairsScenario.shared.GetReliability(part.partInfo.name);
+
+            // Account for MTBF as well
+            if (mtbf <= 0)
+                setStartingMTBF();
 
             // Setup GUI
             Events["DebugBreakPart"].active = debugMode;
@@ -984,6 +1014,8 @@ namespace EVARepairs
 
         private void onGameSettingsApplied()
         {
+            debugMode = EVARepairsScenario.debugMode;
+
             bool maintenanceEnabled = EVARepairsSettings.MaintenanceEnabled;
             bool reliabilityEnabled = EVARepairsSettings.ReliabilityEnabled;
             if (!maintenanceEnabled)
@@ -1002,6 +1034,9 @@ namespace EVARepairs
             if (reliability < startingReliability)
                 reliability = startingReliability;
 
+            // Make sure that MTBF is at the minimum starting value.
+            setStartingMTBF();
+
             // If parts no longer wear out and the part is worn out, then make it repairable.
             bool partsWearOut = EVARepairsSettings.PartsCanWearOut;
             if (!partsWearOut && partWornOut)
@@ -1011,6 +1046,18 @@ namespace EVARepairs
                 currentMTBF = mtbf * 3600f;
             }
             updateReliabilityDisplay();
+        }
+
+        private void setStartingMTBF()
+        {
+            double startingMTBF = EVARepairsScenario.shared.GetStartingMTBF();
+
+            if (mtbf < startingMTBF)
+            {
+                mtbf = startingMTBF;
+                currentMTBF = mtbf * 3600;
+                mtbfCurrentMultiplier = 1;
+            }
         }
 
         private void findModulesThatFail()

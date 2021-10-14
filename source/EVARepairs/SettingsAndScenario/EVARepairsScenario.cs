@@ -54,6 +54,8 @@ namespace EVARepairs
         public static int maxReliabilityLvl1 = 90;
         public static int maxReliabilityLvl2 = 95;
         public static int maxReliabilityLvl3 = 99;
+        public static double startingMTBF = 600;
+        public static bool debugMode = false;
         static float scienceToAdd = 2;
         static float maxScience = 10;
         #endregion
@@ -150,6 +152,24 @@ namespace EVARepairs
 
             // Save updated reliability
             partReliabilities[partName] = partReliability;
+        }
+
+        public double GetStartingMTBF()
+        {
+            double adjustedMTBF = startingMTBF;
+
+            if (HighLogic.CurrentGame.Mode != Game.Modes.CAREER && HighLogic.CurrentGame.Mode != Game.Modes.SCIENCE_SANDBOX)
+                return adjustedMTBF * 3;
+
+            // Max reliability depends upon the level of the R&D building.
+            float facilityLevel = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.ResearchAndDevelopment);
+
+            if (facilityLevel >= 1)
+                return adjustedMTBF * 3;
+            else if (facilityLevel >= 0.5f)
+                return adjustedMTBF * 2;
+            else
+                return adjustedMTBF;
         }
 
         public int GetStartingReliability()
@@ -346,6 +366,8 @@ namespace EVARepairs
             reactionWheelsCanFail = EVARepairsSettings.ReactionWheelsCanFail;
             landingGearCanFail = EVARepairsSettings.LandingGearCanFail;
             technologicalProgressEnabled = EVARepairsSettings.TechnologicalProgressEnabled;
+            startingMTBF = EVARepairsSettings.StartingMTBF;
+            debugMode = EVARepairsSettings.DebugModeEnabled;
         }
         #endregion
     }

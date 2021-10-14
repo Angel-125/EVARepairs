@@ -26,6 +26,9 @@ namespace EVARepairs
         [GameParameters.CustomIntParameterUI("#LOC_EVAREPAIRS_settingsStartingReliabilityDesc", maxValue = 80, minValue = 30, stepSize = 5, toolTip = "#LOC_EVAREPAIRS_settingsStartingReliabilityTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public int startingReliability = 50;
 
+        [GameParameters.CustomIntParameterUI("#LOC_EVAREPAIRS_settingsStartingMTBFDesc", maxValue = 6000, minValue = 600, stepSize = 100, toolTip = "#LOC_EVAREPAIRS_settingsStartingMTBFTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public int startingMTBF = 600;
+
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsTechProgressDesc", toolTip = "#LOC_EVAREPAIRS_settingsTechProgressTip", autoPersistance = true, gameMode = GameParameters.GameMode.CAREER | GameParameters.GameMode.SCIENCE)]
         public bool technologicalProgressEnabled = false;
 
@@ -34,6 +37,9 @@ namespace EVARepairs
 
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsLandingGearDesc", toolTip = "#LOC_EVAREPAIRS_settingsLandingGearTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool landingGearCanFail = false;
+
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsDebugModeDesc", toolTip = "#LOC_EVAREPAIRS_settingsDebugModeTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool debugModeEnabled = false;
         #region CustomParameterNode
 
         public override string DisplaySection
@@ -153,6 +159,15 @@ namespace EVARepairs
             }
         }
 
+        public static double StartingMTBF
+        {
+            get
+            {
+                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
+                return settings.startingMTBF;
+            }
+        }
+
         public static bool ReactionWheelsCanFail
         {
             get
@@ -178,7 +193,16 @@ namespace EVARepairs
                 EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
                 return settings.technologicalProgressEnabled;
             }
-        }        
+        }
+
+        public static bool DebugModeEnabled
+        {
+            get
+            {
+                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
+                return settings.debugModeEnabled;
+            }
+        }
     }
 }
 
