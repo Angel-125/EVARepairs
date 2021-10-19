@@ -20,6 +20,9 @@ namespace EVARepairs.AppButton
 
         public void Awake()
         {
+            if (!HighLogic.LoadedSceneIsFlight && !HighLogic.LoadedSceneIsEditor)
+                return;
+
             appIconEnabled = GameDatabase.Instance.GetTexture("WildBlueIndustries/EVARepairs/Icons/EnabledIcon", false);
             appIconDisabled = GameDatabase.Instance.GetTexture("WildBlueIndustries/EVARepairs/Icons/DisabledIcon", false);
 

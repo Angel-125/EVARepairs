@@ -1028,6 +1028,11 @@ namespace EVARepairs
             Fields["statusDisplay"].guiActiveEditor = maintenanceEnabled;
             Fields["mtbfDisplay"].guiActive = reliabilityEnabled;
             Fields["mtbfDisplay"].guiActiveEditor = reliabilityEnabled;
+            Events["DebugBreakPart"].active = debugMode;
+            Events["DebugRepairPart"].active = debugMode;
+            Events["DebugWearOutPart"].active = debugMode;
+            Fields["mtbfCurrentMultiplier"].guiActive = debugMode;
+            Fields["currentMTBF"].guiActive = debugMode;
 
             // Make sure that Reliability is at the minimum starting value.
             int startingReliability = EVARepairsSettings.StartingReliability;

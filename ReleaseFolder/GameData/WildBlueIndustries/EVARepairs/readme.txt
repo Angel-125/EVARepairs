@@ -14,10 +14,8 @@ GameData
 
 Changes
 
-- Added new Starting MTBF difficulty option. The Starting MTBF ranges from 600 hrs (the default) all the way to 6000 hrs.
-- Added new Debug Mode difficulty option. This is for convenience of testing.
-- Upgrading the R&D building will improve MTBF for future launches.
-- Fixed issue where parts could suddenly fail upon switching them back to an active state after long periods of dormancy.
+- Fixed NRE that occurs upon app startup
+- Fixed issue where debug buttons didn't notice when players updated the EVA Repairs difficulty settings.
 
 ---LICENSE---
 Art Assets, including .mu, .png, and .dds files are copyright 2021 by Michael Billard, All Rights Reserved.
