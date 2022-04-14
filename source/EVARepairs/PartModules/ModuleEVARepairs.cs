@@ -375,7 +375,7 @@ namespace EVARepairs
             count = converters.Count;
             for (int index = 0; index < count; index++)
             {
-                if ((converters[index].moduleIsEnabled && converters[index].IsActivated) || converters[index].AlwaysActive)
+                if (converters[index].moduleIsEnabled && converters[index].IsActivated && !converters[index].AlwaysActive)
                     return true;
             }
 
@@ -383,7 +383,7 @@ namespace EVARepairs
             count = generators.Count;
             for (int index = 0; index < count; index++)
             {
-                if (generators[index].isActiveAndEnabled || generators[index].isAlwaysActive)
+                if (generators[index].isActiveAndEnabled && !generators[index].isAlwaysActive)
                     return true;
             }
 
@@ -508,6 +508,13 @@ namespace EVARepairs
             int count = inventories.Count;
             int repairPartsFound = 0;
             int repairPartsRemaining = amount;
+
+            // Hack to remove expended kits when the kerbal returns from EVA...
+            ProtoCrewMember astronaut = null;
+            if (vessel.isEVA)
+            {
+                astronaut = vessel.GetVesselCrew()[0];
+            }
 
             for (int index = 0; index < count; index++)
             {

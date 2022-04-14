@@ -369,6 +369,46 @@ namespace EVARepairs
             startingMTBF = EVARepairsSettings.StartingMTBF;
             debugMode = EVARepairsSettings.DebugModeEnabled;
         }
+
+        /*
+        private void onCrewTransferred(GameEvents.HostedFromToAction<ProtoCrewMember, Part> data)
+        {
+            if (expendedKits.Count <= 0)
+                return;
+
+            // Hack to remove expended repair kits
+            try
+            {
+                ProtoCrewMember astronaut = data.host;
+                Part fromPart = data.from;
+                Part toPart = data.to;
+                int count = expendedKits.Count;
+
+                List<UsedRepairKits> doomed = new List<UsedRepairKits>();
+                UsedRepairKits expendedKit;
+                for (int index = 0; index < count; index++)
+                {
+                    if (expendedKits[index].crewMember == astronaut)
+                    {
+                        expendedKit = expendedKits[index];
+                        expendedKit.inventory.RemoveNPartsFromInventory(expendedKit.repairKitName, expendedKit.count);
+                        doomed.Add(expendedKit);
+                    }
+                }
+
+                count = doomed.Count;
+                for (int index = 0; index < count; index++)
+                {
+                    expendedKits.Remove(doomed[index]);
+                }
+                doomed.Clear();
+            }
+            catch (Exception ex)
+            {
+                Debug.Log("[EVARepairs] - Error while trying to remove expended kits:" + ex);
+            }
+        }
+        */
         #endregion
     }
 }
