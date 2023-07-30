@@ -38,6 +38,15 @@ namespace EVARepairs
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsLandingGearDesc", toolTip = "#LOC_EVAREPAIRS_settingsLandingGearTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool landingGearCanFail = false;
 
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsEnginesDesc", toolTip = "#LOC_EVAREPAIRS_settingsEnginesTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool enginesCanFail = false;
+
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsConvertersDesc", toolTip = "#LOC_EVAREPAIRS_settingsConvertersTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool convertersCanFail = false;
+
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsGeneratorsDesc", toolTip = "#LOC_EVAREPAIRS_settingsGeneratorsTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool generatorsCanFail = false;
+
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsDebugModeDesc", toolTip = "#LOC_EVAREPAIRS_settingsDebugModeTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool debugModeEnabled = false;
         #region CustomParameterNode
@@ -192,6 +201,33 @@ namespace EVARepairs
             {
                 EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
                 return settings.technologicalProgressEnabled;
+            }
+        }
+
+        public static bool EnginesCanFail
+        {
+            get
+            {
+                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
+                return settings.enginesCanFail;
+            }
+        }
+
+        public static bool ConvertersCanFail
+        {
+            get
+            {
+                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
+                return settings.convertersCanFail;
+            }
+        }
+
+        public static bool GeneratorsCanFail
+        {
+            get
+            {
+                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
+                return settings.generatorsCanFail;
             }
         }
 

@@ -367,7 +367,7 @@ namespace EVARepairs
             int count = engines.Count;
             for (int index = 0; index < count; index++)
             {
-                if (engines[index].isOperational)
+                if (engines[index].isOperational && EVARepairsScenario.enginesCanFail)
                     return true;
             }
 
@@ -375,7 +375,7 @@ namespace EVARepairs
             count = converters.Count;
             for (int index = 0; index < count; index++)
             {
-                if (converters[index].moduleIsEnabled && converters[index].IsActivated && !converters[index].AlwaysActive)
+                if (converters[index].moduleIsEnabled && converters[index].IsActivated && !converters[index].AlwaysActive && EVARepairsScenario.convertersCanFail)
                     return true;
             }
 
@@ -383,7 +383,7 @@ namespace EVARepairs
             count = generators.Count;
             for (int index = 0; index < count; index++)
             {
-                if (generators[index].isActiveAndEnabled && !generators[index].isAlwaysActive)
+                if (generators[index].isActiveAndEnabled && !generators[index].isAlwaysActive && EVARepairsScenario.generatorsCanFail)
                     return true;
             }
 

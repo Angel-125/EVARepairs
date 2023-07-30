@@ -49,6 +49,9 @@ namespace EVARepairs
         public static bool reactionWheelsCanFail = false;
         public static bool probeCoresCanFail = false;
         public static bool landingGearCanFail = false;
+        public static bool enginesCanFail = false;
+        public static bool convertersCanFail = false;
+        public static bool generatorsCanFail = false;
         public static bool technologicalProgressEnabled = false;
         public static int startingReliability = 30;
         public static int maxReliabilityLvl1 = 90;
@@ -365,6 +368,9 @@ namespace EVARepairs
             startingReliability = EVARepairsSettings.StartingReliability;
             reactionWheelsCanFail = EVARepairsSettings.ReactionWheelsCanFail;
             landingGearCanFail = EVARepairsSettings.LandingGearCanFail;
+            enginesCanFail = EVARepairsSettings.EnginesCanFail;
+            convertersCanFail = EVARepairsSettings.ConvertersCanFail;
+            generatorsCanFail = EVARepairsSettings.GeneratorsCanFail;
             technologicalProgressEnabled = EVARepairsSettings.TechnologicalProgressEnabled;
             startingMTBF = EVARepairsSettings.StartingMTBF;
             debugMode = EVARepairsSettings.DebugModeEnabled;

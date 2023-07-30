@@ -14,8 +14,7 @@ GameData
 
 Changes
 
-- Fixed NRE that occurs upon app startup
-- Fixed issue where debug buttons didn't notice when players updated the EVA Repairs difficulty settings.
+- Engines, converters, and generators can now optionally fail.
 
 ---LICENSE---
 Art Assets, including .mu, .png, and .dds files are copyright 2021 by Michael Billard, All Rights Reserved.

@@ -65,8 +65,8 @@ C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\bin\Debug\UnityE
 C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\bin\Debug\UnityEngine.XRModule.dll
 C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\bin\Debug\UnityEngine.InputModule.dll
 C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\bin\Debug\KSPAssets.XmlSerializers.dll
-C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\obj\Debug\EVARepairs.csprojAssemblyReference.cache
+C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\obj\Debug\EVARepairs.csproj.CoreCompileInputs.cache
 C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\obj\Debug\EVARepairs.csproj.CopyComplete
 C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\obj\Debug\EVARepairs.dll
 C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\obj\Debug\EVARepairs.pdb
-C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\obj\Debug\EVARepairs.csproj.CoreCompileInputs.cache
+C:\Projects\KSP\WildBlueIndustries\EVARepairs\source\EVARepairs\obj\Debug\EVARepairs.csproj.AssemblyReference.cache
