@@ -14,18 +14,34 @@ GameData
 
 Changes
 
-- Fixed NRE that occurs upon app startup
-- Fixed issue where debug buttons didn't notice when players updated the EVA Repairs difficulty settings.
+- EVA repairs-related events and displays have been moved to the PAW's EVA Repairs group.
+- Solar panels and radiators can now optionally fail.
+- Engines will reduce MTBF only when throttled up and running.
+- If the option is enabled (it's off by default), then when a part with crew capacity fails, it can be repaired from the inside.
+- Parts with less than 20% MTBF now have the option to Service the part to restore their MTBF before they fail.
+- Parts that have worn out now have the option to Overhaul the part to restore its maximum possible MTBF. See below for details.
+- You can now specify the default MTBF by part module. E.G. Engines have an MTBF of 1 (hour). See EVARepairs/BaselineConfig.cfg for details.
+- Removed default MTBF from settings menu.
+- In Settings, moved breakable part options to the new Breakable Things section.
+
+Bug Fixes
+
+- Fixed issue where MTBF would drain even when various modules weren't deployed, active, etc.
+- Fixed issue where MTBF would show "-1" in the part info view.
+
+Overhaul Game Mechanic
+
+When the "Parts can wear out" option is enabled, parts will lose 10% of their maximum possible MTBF each time they're repaired. The intent was to have stations and ships wear out over time and need replacement. This release introduces a new game mechanic: Overhaul. Overhauling a part requires a Level 3 engineer or above, 4 Repair Kits, and a mass of Ore equal to 20% of the part's dry mass. An Overhaul will restore the part's maximum possible MTBF.
 
 ---LICENSE---
-Art Assets, including .mu, .png, and .dds files are copyright 2021 by Michael Billard, All Rights Reserved.
+Art Assets, including .mu, .png, and .dds files are copyright 2021-2024 by Michael Billard, All Rights Reserved.
 
 Wild Blue Industries is trademarked by Michael Billard. All rights reserved.
 Note that Wild Blue Industries is a ficticious entity 
 created for entertainment purposes. It is in no way meant to represent a real entity.
 Any similarity to a real entity is purely coincidental.
 
-Source code copyright 2021 by Michael Billard (Angel-125)
+Source code copyright 2021-2024 by Michael Billard (Angel-125)
 
     This source code is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

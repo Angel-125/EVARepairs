@@ -14,6 +14,9 @@ namespace EVARepairs
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsMaintenanceDesc", toolTip = "#LOC_EVAREPAIRS_settingsMaintenanceTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool maintenanceEnabled = true;
 
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_internalRepairsDesc", toolTip = "#LOC_EVAREPAIRS_internalRepairsTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool internalRepairsAllowed = false;
+
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsPartsWearOutDesc", toolTip = "#LOC_EVAREPAIRS_settingsPartsWearOutTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool partsCanWearOut = false;
 
@@ -26,17 +29,8 @@ namespace EVARepairs
         [GameParameters.CustomIntParameterUI("#LOC_EVAREPAIRS_settingsStartingReliabilityDesc", maxValue = 80, minValue = 30, stepSize = 5, toolTip = "#LOC_EVAREPAIRS_settingsStartingReliabilityTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public int startingReliability = 50;
 
-        [GameParameters.CustomIntParameterUI("#LOC_EVAREPAIRS_settingsStartingMTBFDesc", maxValue = 6000, minValue = 600, stepSize = 100, toolTip = "#LOC_EVAREPAIRS_settingsStartingMTBFTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
-        public int startingMTBF = 600;
-
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsTechProgressDesc", toolTip = "#LOC_EVAREPAIRS_settingsTechProgressTip", autoPersistance = true, gameMode = GameParameters.GameMode.CAREER | GameParameters.GameMode.SCIENCE)]
         public bool technologicalProgressEnabled = false;
-
-        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsWheelsDesc", toolTip = "#LOC_EVAREPAIRS_settingsWheelsTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
-        public bool reactionWheelFailureEnabled = false;
-
-        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsLandingGearDesc", toolTip = "#LOC_EVAREPAIRS_settingsLandingGearTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
-        public bool landingGearCanFail = false;
 
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsDebugModeDesc", toolTip = "#LOC_EVAREPAIRS_settingsDebugModeTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool debugModeEnabled = false;
@@ -141,6 +135,15 @@ namespace EVARepairs
             }
         }
 
+        public static bool InternalRepairsAllowed
+        {
+            get
+            {
+                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
+                return settings.internalRepairsAllowed;
+            }
+        }
+
         public static bool ReliabilityEnabled
         {
             get
@@ -159,20 +162,11 @@ namespace EVARepairs
             }
         }
 
-        public static double StartingMTBF
-        {
-            get
-            {
-                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
-                return settings.startingMTBF;
-            }
-        }
-
         public static bool ReactionWheelsCanFail
         {
             get
             {
-                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
+                EVARepairsSettingsBreakableParts settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettingsBreakableParts>();
                 return settings.reactionWheelFailureEnabled;
             }
         }
@@ -181,8 +175,26 @@ namespace EVARepairs
         {
             get
             {
-                EVARepairsSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettings>();
+                EVARepairsSettingsBreakableParts settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettingsBreakableParts>();
                 return settings.landingGearCanFail;
+            }
+        }
+
+        public static bool SolarPanelsCanFail
+        {
+            get
+            {
+                EVARepairsSettingsBreakableParts settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettingsBreakableParts>();
+                return settings.solarPanelsCanFail;
+            }
+        }
+
+        public static bool RadiatorsCanFail
+        {
+            get
+            {
+                EVARepairsSettingsBreakableParts settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettingsBreakableParts>();
+                return settings.radiatorsCanFail;
             }
         }
 
@@ -203,6 +215,75 @@ namespace EVARepairs
                 return settings.debugModeEnabled;
             }
         }
+    }
+
+    public class EVARepairsSettingsBreakableParts : GameParameters.CustomParameterNode
+    {
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsWheelsDesc", toolTip = "#LOC_EVAREPAIRS_settingsWheelsTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool reactionWheelFailureEnabled = false;
+
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsLandingGearDesc", toolTip = "#LOC_EVAREPAIRS_settingsLandingGearTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool landingGearCanFail = false;
+
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsSolarPanelsDesc", toolTip = "#LOC_EVAREPAIRS_settingsSolarPanelsTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool solarPanelsCanFail = false;
+
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsRadiatorsDesc", toolTip = "#LOC_EVAREPAIRS_settingsRadiatorsTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool radiatorsCanFail = false;
+
+        public override string DisplaySection
+        {
+            get
+            {
+                return Section;
+            }
+        }
+
+        public override string Section
+        {
+            get
+            {
+                return "EVA Repairs";
+            }
+        }
+
+        public override string Title
+        {
+            get
+            {
+                return "Breakable Things";
+            }
+        }
+
+        public override int SectionOrder
+        {
+            get
+            {
+                return 2;
+            }
+        }
+
+        public override void SetDifficultyPreset(GameParameters.Preset preset)
+        {
+            base.SetDifficultyPreset(preset);
+        }
+
+        public override GameParameters.GameMode GameMode
+        {
+            get
+            {
+                return GameParameters.GameMode.ANY;
+            }
+        }
+
+        public override bool HasPresets
+        {
+            get
+            {
+                return false;
+            }
+        }
+
     }
 }
 

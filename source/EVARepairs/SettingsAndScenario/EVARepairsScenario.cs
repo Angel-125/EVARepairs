@@ -49,7 +49,10 @@ namespace EVARepairs
         public static bool reactionWheelsCanFail = false;
         public static bool probeCoresCanFail = false;
         public static bool landingGearCanFail = false;
+        public static bool solarPanelsCanFail = false;
+        public static bool radiatorsCanFail = false;
         public static bool technologicalProgressEnabled = false;
+        public static bool internalRepairsAllowed = false;
         public static int startingReliability = 30;
         public static int maxReliabilityLvl1 = 90;
         public static int maxReliabilityLvl2 = 95;
@@ -365,8 +368,10 @@ namespace EVARepairs
             startingReliability = EVARepairsSettings.StartingReliability;
             reactionWheelsCanFail = EVARepairsSettings.ReactionWheelsCanFail;
             landingGearCanFail = EVARepairsSettings.LandingGearCanFail;
+            solarPanelsCanFail = EVARepairsSettings.SolarPanelsCanFail;
+            radiatorsCanFail = EVARepairsSettings.RadiatorsCanFail;
+            internalRepairsAllowed = EVARepairsSettings.InternalRepairsAllowed;
             technologicalProgressEnabled = EVARepairsSettings.TechnologicalProgressEnabled;
-            startingMTBF = EVARepairsSettings.StartingMTBF;
             debugMode = EVARepairsSettings.DebugModeEnabled;
         }
 

@@ -71,6 +71,10 @@ namespace EVARepairs.SettingsAndScenario
             private void addRepairModule(AvailablePart availablePart, ConfigNode baselineConfig)
             {
                 PartModule partModule;
+                ConfigNode[] mtbfNodes = GameDatabase.Instance.GetConfigNodes("PART_MODULE_MTBFS");
+                ConfigNode mtbfNode = null;
+                if (mtbfNodes.Length > 0)
+                    mtbfNode = mtbfNodes[0];
 
                 // If the part already has ModuleEVARepairs then we're done.
                 if (availablePart.partPrefab.HasModuleImplementing<ModuleEVARepairs>())
@@ -81,14 +85,26 @@ namespace EVARepairs.SettingsAndScenario
                     !availablePart.partPrefab.HasModuleImplementing<ModuleEngines>() &&
                     !availablePart.partPrefab.HasModuleImplementing<BaseConverter>() &&
                     !availablePart.partPrefab.HasModuleImplementing<ModuleReactionWheel>() &&
-                    !availablePart.partPrefab.HasModuleImplementing<ModuleWheelDeployment>()
+                    !availablePart.partPrefab.HasModuleImplementing<ModuleWheelDeployment>() &&
+                    !availablePart.partPrefab.HasModuleImplementing<ModuleDeployableSolarPanel>() &&
+                    !availablePart.partPrefab.HasModuleImplementing<ModuleActiveRadiator>() &&
+                    !availablePart.partPrefab.HasModuleImplementing<ModuleDeployableRadiator>()
                     )
                     return;
 
                 // Add the module and load the config.
                 partModule = availablePart.partPrefab.AddModule(kModuleNameToAdd, true);
                 if (partModule != null)
+                {
                     partModule.Load(baselineConfig);
+
+                    // Set MTBF
+                    if (partModule is ModuleEVARepairs)
+                    {
+                        ModuleEVARepairs reparsModule = partModule as ModuleEVARepairs;
+                        reparsModule.mtbf = getMTBF(mtbfNode, availablePart.partPrefab);
+                    }
+                }
 
                 // Add module info to the prefab.
                 if (partModule is IModuleInfo)
@@ -127,6 +143,63 @@ namespace EVARepairs.SettingsAndScenario
             }
         }
 
+        #endregion
+
+        #region Helpers
+        static double getMTBF(ConfigNode mtbfNode, Part partPrefab)
+        {
+            if (mtbfNode == null)
+                return EVARepairsScenario.startingMTBF;
+
+            double value = EVARepairsScenario.startingMTBF;
+            if (mtbfNode.HasValue("default"))
+            {
+                double.TryParse(mtbfNode.GetValue("default"), out value);
+            }
+
+            if (mtbfNode.HasValue("ModuleEngines") && partPrefab.HasModuleImplementing<ModuleEngines>())
+            {
+                double.TryParse(mtbfNode.GetValue("ModuleEngines"), out value);
+                return value;
+            }
+            if (mtbfNode.HasValue("ModuleGenerator") && partPrefab.HasModuleImplementing<ModuleGenerator>())
+            {
+                double.TryParse(mtbfNode.GetValue("ModuleGenerator"), out value);
+                return value;
+            }
+            if (mtbfNode.HasValue("BaseConverter") && partPrefab.HasModuleImplementing<BaseConverter>())
+            {
+                double.TryParse(mtbfNode.GetValue("BaseConverter"), out value);
+                return value;
+            }
+            if (mtbfNode.HasValue("ModuleReactionWheel") && partPrefab.HasModuleImplementing<ModuleReactionWheel>())
+            {
+                double.TryParse(mtbfNode.GetValue("ModuleReactionWheel"), out value);
+                return value;
+            }
+            if (mtbfNode.HasValue("ModuleWheelDeployment") && partPrefab.HasModuleImplementing<ModuleWheelDeployment>())
+            {
+                double.TryParse(mtbfNode.GetValue("ModuleWheelDeployment"), out value);
+                return value;
+            }
+            if (mtbfNode.HasValue("ModuleDeployableSolarPanel") && partPrefab.HasModuleImplementing<ModuleDeployableSolarPanel>())
+            {
+                double.TryParse(mtbfNode.GetValue("ModuleDeployableSolarPanel"), out value);
+                return value;
+            }
+            if (mtbfNode.HasValue("ModuleActiveRadiator") && partPrefab.HasModuleImplementing<ModuleActiveRadiator>())
+            {
+                double.TryParse(mtbfNode.GetValue("ModuleActiveRadiator"), out value);
+                return value;
+            }
+            if (mtbfNode.HasValue("ModuleDeployableRadiator") && partPrefab.HasModuleImplementing<ModuleDeployableRadiator>())
+            {
+                double.TryParse(mtbfNode.GetValue("ModuleDeployableRadiator"), out value);
+                return value;
+            }
+
+            return value;
+        }
         #endregion
     }
 }

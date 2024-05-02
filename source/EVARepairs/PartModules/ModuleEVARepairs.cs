@@ -81,6 +81,10 @@ namespace EVARepairs
         #region constants
         public const float messageDuration = 5.0f;
         const string kBreakablePartModule = "breakablePartModule";
+        const float kOverhaulThreshold = 0.2f;
+
+        // Bonus to activation roll when throttling engines up
+        const int kThrottleActivationBonus = 25;
         #endregion
 
         #region KSPEvents
@@ -103,7 +107,7 @@ namespace EVARepairs
         /// <summary>
         /// Display string for the status.
         /// </summary>
-        [KSPField(guiActive = true, guiName = "#LOC_EVAREPAIRS_status")]
+        [KSPField(guiActive = true, guiName = "#LOC_EVAREPAIRS_status", groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
         public string statusDisplay = Localizer.Format("#LOC_EVAREPAIRS_statusOK");
 
         /// <summary>
@@ -122,8 +126,8 @@ namespace EVARepairs
         /// <summary>
         /// In seconds, the current time remaining until the part needs maintenance in order to function.
         /// </summary>
-        [KSPField(isPersistant = true)]
-        public double currentMTBF = 600 * 3600;
+        [KSPField(isPersistant = true, groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
+        public double currentMTBF = -1f;
 
         /// <summary>
         /// Percent of MTBF lost each time the part is repaired. If a part has no MTBF remaining then it has worn out and is permanently disabled. Default is 0, which means no MTBF is lost.
@@ -134,7 +138,7 @@ namespace EVARepairs
         /// <summary>
         /// Current MTBF multiplier. It starts at 1, and is reduced by mtbfPercentLostPerCycle each time the part is repaired. When it reaches 0, the part is permanently disabled and cannot be repaired.
         /// </summary>
-        [KSPField(isPersistant = true)]
+        [KSPField(isPersistant = true, groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
         public float mtbfCurrentMultiplier = 1f;
 
         /// <summary>
@@ -150,6 +154,12 @@ namespace EVARepairs
         public int minimumSkillLevel = 1;
 
         /// <summary>
+        /// The minimum skill level required to perform overhauls. Default is 3.
+        /// </summary>
+        [KSPField]
+        public int minimumOverhaulSkillLevel = 3;
+
+        /// <summary>
         /// The part name that is consumed during repairs. It MUST be a part that can be store in an inventory. Default is evaRepairKit (the stock EVA Repair Kit).
         /// </summary>
         [KSPField]
@@ -160,6 +170,12 @@ namespace EVARepairs
         /// </summary>
         [KSPField]
         public int repairKitsRequired = 1;
+
+        /// <summary>
+        /// The number of repair kits required to overhaul the part. Default is 4.
+        /// </summary>
+        [KSPField]
+        public int repairKitsRequiredOverhaul = 4;
 
         /// <summary>
         /// Flag indicating that the part is worn out and can no longer be repaired.
@@ -188,7 +204,7 @@ namespace EVARepairs
         /// <summary>
         /// Shows the current reliability rating, reflected by currentMTBF/maxMTBF and, if enabled, the part's Reliability rating.
         /// </summary>
-        [KSPField(guiActive = true, guiActiveEditor = true, guiName = "#LOC_EVAREPAIRS_mtbfTitle")]
+        [KSPField(guiActive = true, guiActiveEditor = true, guiName = "#LOC_EVAREPAIRS_mtbfTitle", groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
         public string mtbfDisplay = string.Empty;
 
         /// <summary>
@@ -196,22 +212,42 @@ namespace EVARepairs
         /// </summary>
         [KSPField(isPersistant = true)]
         public float wheelStuckPosition = -1f;
+
+        /// <summary>
+        /// The resource required to overhaul the part. Default is ore.
+        /// </summary>
+        [KSPField]
+        public string overhaulResource = "Ore";
         #endregion
 
         #region Housekeeping
+        [KSPField(groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
+        double mtbfRateMultiplier = 1f;
+
+        [KSPField(groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
+        bool partDidFail = false;
+
+        [KSPField(groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
+        int activationRoll;
+
         List<BaseConverter> converters = null;
         List<ModuleGenerator> generators = null;
         List<ModuleEngines> engines = null;
         List<bool> engineStates = null;
         List<bool> converterStates = null;
+        List<ModuleDeployableSolarPanel> solarPanels = null;
         ReactionWheelState reactionWheelState = null;
-        double mtbfRateMultiplier = 1f;
+        ModuleActiveRadiator radiator = null;
+        ModuleDeployableRadiator deployableRadiator = null;
         bool sasIsActive = false;
         bool sasWasActive = false;
         public ModuleWheelDeployment wheelDeployment = null;
         float wheelDeployPosition = 0f;
         float wheelRetractPosition = 0f;
         KFSMState previousWheelState = null;
+        float previousThrottle = 0f;
+        bool applyThrottleBonus = false;
+
         KSPActionGroup wheelActionGroup;
         [KSPField(isPersistant = true)]
         public string actionGroupId = string.Empty;
@@ -258,9 +294,9 @@ namespace EVARepairs
 
         #region Events
         /// <summary>
-        /// Performs maintenance on the part.
+        /// Repairs the part.
         /// </summary>
-        [KSPEvent(guiName = "#LOC_EVAREPAIRS_repairPart", externalToEVAOnly = false, guiActiveUnfocused = true, unfocusedRange = 25)]
+        [KSPEvent(guiName = "#LOC_EVAREPAIRS_repairPart", externalToEVAOnly = false, guiActiveUnfocused = true, unfocusedRange = 25, groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
         public virtual void RepairPart()
         {
             if (CanRepairPart(repairSkill, minimumSkillLevel, repairKitName, repairKitsRequired))
@@ -271,36 +307,81 @@ namespace EVARepairs
         }
 
         /// <summary>
+        /// Repairs the part.
+        /// </summary>
+        [KSPEvent(guiName = "#LOC_EVAREPAIRS_overhaulPart", externalToEVAOnly = false, guiActiveUnfocused = true, unfocusedRange = 25, groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
+        public virtual void OverhaulPart()
+        {
+            double overhaulResourceAmount = getResourceAmountForOverhaul();
+            double amount = 0;
+            double maxAmount = 0;
+
+            // Get the vessel's resource totals for the overhaul resource.
+            PartResourceDefinition definition = getOverhaulResourceDefinition();
+            if (definition != null)
+                part.vessel.GetConnectedResourceTotals(definition.id, out amount, out maxAmount);
+
+            // Make sure that we have enough of the overhaul resource
+            if (amount < overhaulResourceAmount)
+            {
+                if (definition != null)
+                {
+                    string message = Localizer.Format("#LOC_EVAREPAIRS_overhaulInsufficientResources", new string[1] { definition.displayName }) + " " + part.partInfo.title;
+                    ScreenMessages.PostScreenMessage(message, messageDuration, ScreenMessageStyle.UPPER_CENTER);
+                }
+                return;
+            }
+
+            // Now check for sufficient repair kits and skill.
+            // If we're all good then consume the repair kits and overhaul resource, and then restore max MTBF.
+            if (CanRepairPart(repairSkill, minimumOverhaulSkillLevel, repairKitName, repairKitsRequiredOverhaul))
+            {
+                ConsumeRepairKits(FlightGlobals.ActiveVessel, repairKitName, repairKitsRequired);
+                if (definition != null)
+                    part.RequestResource(definition.id, overhaulResourceAmount);
+                mtbfCurrentMultiplier = 1f;
+                RestorePartFunctionality();
+                partWornOut = false;
+                Events["OverhaulPart"].active = false;
+                Events["OverhaulPart"].guiActive = false;
+            }
+        }
+
+        /// <summary>
         /// Debug event to break the part.
         /// </summary>
-        [KSPEvent(guiName = "(Debug) break part", guiActive = true, guiActiveUncommand = true)]
+        [KSPEvent(guiName = "(Debug) break part", guiActive = true, guiActiveUncommand = true, groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
         public virtual void DebugBreakPart()
         {
             needsMaintenance = false;
-            currentMTBF = TimeWarp.fixedDeltaTime;
+            currentMTBF = 0;
+            updateMaintenanceStatus();
+            updateReliabilityDisplay();
         }
 
         /// <summary>
         /// Debug event to break the part.
         /// </summary>
-        [KSPEvent(guiName = "(Debug) wear out part", guiActive = true, guiActiveUncommand = true)]
+        [KSPEvent(guiName = "(Debug) wear out part", guiActive = true, guiActiveUncommand = true, groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
         public virtual void DebugWearOutPart()
         {
             needsMaintenance = false;
-            currentMTBF = TimeWarp.fixedDeltaTime;
-            mtbfCurrentMultiplier = 0;
+            currentMTBF = 0;
+            mtbfCurrentMultiplier = 0f;
+            partWornOut = true;
+            updateMaintenanceStatus();
+            updateReliabilityDisplay();
         }
 
         /// <summary>
         /// Debug event to break the part.
         /// </summary>
-        [KSPEvent(guiName = "(Debug) repair part", guiActive = true, guiActiveUncommand = true)]
+        [KSPEvent(guiName = "(Debug) repair part", guiActive = true, guiActiveUncommand = true, groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
         public virtual void DebugRepairPart()
         {
             RestorePartFunctionality();
 
             // Restore MTBF fully
-            currentMTBF = mtbf * 3600;
             mtbfCurrentMultiplier = 1f;
             partWornOut = false;
         }
@@ -326,7 +407,7 @@ namespace EVARepairs
                 // Reduce the multiplier.
                 mtbfCurrentMultiplier -= (mtbfPercentLostPerCycle / 100f);
 
-                // The next time that the part breaks, it won't be repairable.
+                // The next time that the part breaks, it won't be repairable - unless it's overhauled!
                 if (mtbfCurrentMultiplier <= 0)
                     mtbfCurrentMultiplier = 0;
             }
@@ -337,6 +418,7 @@ namespace EVARepairs
             statusDisplay = Localizer.Format("#LOC_EVAREPAIRS_statusOK");
 
             Events["RepairPart"].active = false;
+            Events["RepairPart"].guiActive = false;
             GameEvents.onPartRepaired.Fire(part);
             EnablePartModules();
         }
@@ -347,44 +429,110 @@ namespace EVARepairs
         /// <returns>true if we can, false if not.</returns>
         public virtual bool CanUpdateMTBF()
         {
+            int count = 0;
+
+            if (EVARepairsScenario.debugMode)
+                Debug.Log("[ModuleEVARepairs] - CanUpdateMTBF: Checking part " + part.partInfo.name);
+
             // If EVA Repairs is disabled, or the part needs maintenance, or the part is worn out, then we can't update.
             if (!EVARepairsScenario.maintenanceEnabled || needsMaintenance || partWornOut)
                 return false;
 
             // If the part has deployable landing gear or legs, then we can update.
-            if (wheelDeployment != null && (wheelDeployment.fsm.CurrentState == wheelDeployment.st_deploying || wheelDeployment.fsm.CurrentState == wheelDeployment.st_retracting))
-                return true;
+            if (wheelDeployment != null)
+            {
+                if (EVARepairsScenario.debugMode)
+                    Debug.Log("[ModuleEVARepairs] - CanUpdateMTBF: Has breakable wheels");
+                if (wheelDeployment.fsm.CurrentState == wheelDeployment.st_deploying || wheelDeployment.fsm.CurrentState == wheelDeployment.st_retracting)
+                    return true;
+            }
 
             // If the part has an active reaction wheel, then we can update.
-            if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null && sasIsActive && reactionWheelState.isEnabled)
-                return true;
-
-            // If the part has no engine, generator, or converter, then we can update.
-            if (engines.Count == 0 && generators.Count == 0 && converters.Count == 0)
-                return true;
-
-            // If the part has an active engine, then we can update.
-            int count = engines.Count;
-            for (int index = 0; index < count; index++)
+            if (EVARepairsScenario.reactionWheelsCanFail && reactionWheelState != null)
             {
-                if (engines[index].isOperational)
+                if (EVARepairsScenario.debugMode)
+                    Debug.Log("[ModuleEVARepairs] - CanUpdateMTBF: Has breakable reaction wheel");
+                if (sasIsActive && reactionWheelState.isEnabled)
                     return true;
+            }
+
+            // Solar panels
+            count = solarPanels.Count;
+            if (EVARepairsScenario.solarPanelsCanFail && count > 0)
+            {
+                if (EVARepairsScenario.debugMode)
+                    Debug.Log("[ModuleEVARepairs] - CanUpdateMTBF: Has breakable solar panel");
+
+                for (int index = 0; index < count; index++)
+                {
+                    if (solarPanels[index].deployState == ModuleDeployablePart.DeployState.EXTENDED)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            // Radiators
+            if (EVARepairsScenario.radiatorsCanFail)
+            {
+                if (deployableRadiator != null && deployableRadiator.deployState == ModuleDeployablePart.DeployState.EXTENDED && radiator != null && radiator.IsCooling)
+                {
+                    if (EVARepairsScenario.debugMode)
+                        Debug.Log("[ModuleEVARepairs] - CanUpdateMTBF: Has breakable deployable radiator");
+                    return true;
+                }
+
+                else if (radiator != null && radiator.IsCooling)
+                {
+                    if (EVARepairsScenario.debugMode)
+                        Debug.Log("[ModuleEVARepairs] - CanUpdateMTBF: Has breakable fixed radiator");
+                    return true;
+                }
+            }
+
+            // If the part has an active engine, and we're throttled up, then we can update.
+            count = engines.Count;
+            if (count > 0)
+            {
+                for (int index = 0; index < count; index++)
+                {
+                    if (engines[index].isOperational && FlightInputHandler.state.mainThrottle > 0)
+                    {
+                        if (EVARepairsScenario.debugMode)
+                            Debug.Log("[ModuleEVARepairs] - CanUpdateMTBF: Has running engine");
+                        return true;
+                    }
+                }
             }
 
             // If the part has an active converter, then we can update.
             count = converters.Count;
-            for (int index = 0; index < count; index++)
+            if (count > 0)
             {
-                if (converters[index].moduleIsEnabled && converters[index].IsActivated && !converters[index].AlwaysActive)
-                    return true;
+                for (int index = 0; index < count; index++)
+                {
+                    if (converters[index].moduleIsEnabled && converters[index].IsActivated && !converters[index].AlwaysActive)
+                    {
+                        if (EVARepairsScenario.debugMode)
+                            Debug.Log("[ModuleEVARepairs] - CanUpdateMTBF: Has running converter");
+                        return true;
+                    }
+                }
             }
 
             // If the part has an active generator, then we can update.
             count = generators.Count;
-            for (int index = 0; index < count; index++)
+            if (count > 0)
             {
-                if (generators[index].isActiveAndEnabled && !generators[index].isAlwaysActive)
-                    return true;
+                for (int index = 0; index < count; index++)
+                {
+                    if (generators[index].isActiveAndEnabled && !generators[index].isAlwaysActive)
+                    {
+                        if (EVARepairsScenario.debugMode)
+                            Debug.Log("[ModuleEVARepairs] - CanUpdateMTBF: Has running generator");
+                        return true;
+                    }
+                }
             }
 
             // The part has an engine, generator, and/or a converter, but none are currently active, so we can't update.
@@ -433,6 +581,14 @@ namespace EVARepairs
 
         protected virtual void updateMaintenanceStatus()
         {
+            // Allow maintenance
+            double maintenancePercent = (currentMTBF / (mtbf * 3600f));
+            if (maintenancePercent <= 0.2f && maintenancePercent > 0.001f)
+            {
+                Events["RepairPart"].guiName = Localizer.Format("#LOC_EVAREPAIRS_servicePart", new string[1] { part.partInfo.title });
+                Events["RepairPart"].active = true;
+            }
+
             if (currentMTBF <= 0)
             {
                 // If the part hasn't worn out yet then it just needs maintenance.
@@ -442,6 +598,7 @@ namespace EVARepairs
 
                     statusDisplay = Localizer.Format("#LOC_EVAREPAIRS_needsMaintenance");
 
+                    Events["RepairPart"].guiName = Localizer.Format("#LOC_EVAREPAIRS_repairPart", new string[1] { part.partInfo.title });
                     Events["RepairPart"].active = true;
 
                     string message = Localizer.Format("#LOC_EVAREPAIRS_partNeedsMaintenance", new string[1] { part.partInfo.title });
@@ -456,6 +613,8 @@ namespace EVARepairs
 
                     string message = Localizer.Format("#LOC_EVAREPAIRS_partWornOut", new string[1] { part.partInfo.title });
                     ScreenMessages.PostScreenMessage(message, messageDuration, ScreenMessageStyle.UPPER_LEFT);
+
+                    enableOverhauling();
 
                     onPartWornOut.Fire(part, this);
                 }
@@ -593,6 +752,11 @@ namespace EVARepairs
                     disableWheelDeployment();
                 }
 
+                else if (module is ModuleDeployableSolarPanel || module is ModuleDeployableRadiator || module is ModuleActiveRadiator)
+                {
+                    disableModule = true;
+                }
+
                 // Now handle modules on our disable list.
                 if (!disableModule && (module == this || !breakbleModuleNames.Contains(module.moduleName)))
                     continue;
@@ -644,7 +808,7 @@ namespace EVARepairs
                 }
 
                 // Handle other built-in modules
-                else if (module is ModuleEngines || module is ModuleGenerator || module is BaseConverter)
+                else if (module is ModuleEngines || module is ModuleGenerator || module is BaseConverter || module is ModuleDeployableSolarPanel || module is ModuleActiveRadiator || module is ModuleDeployableRadiator)
                 {
                     enableModule = true;
                 }
@@ -687,8 +851,15 @@ namespace EVARepairs
 
             // Make the check
             int dieRoll = UnityEngine.Random.Range(1, 100);
-            bool checkFailed = false;
-            if (dieRoll > targetNumber)
+            if (applyThrottleBonus)
+            {
+                dieRoll += kThrottleActivationBonus;
+                if (dieRoll > 100)
+                    dieRoll = 100;
+            }
+            activationRoll = dieRoll;
+            partDidFail = false;
+            if (dieRoll < targetNumber)
             {
                 // Reduce current MTBF to 1-10 seconds to allow some time before the failure occurs.
                 if (wheelDeployment == null)
@@ -697,12 +868,13 @@ namespace EVARepairs
                 // Immediately run out of MTBF. This will trigger part failure, and the gear will stop somewhere during its animation process.
                 else
                     currentMTBF = TimeWarp.fixedDeltaTime;
-                checkFailed = true;
+
+                partDidFail = true;
             }
 
             // Update reliability
             if (EVARepairsScenario.reliabilityEnabled && updateReliability)
-                EVARepairsScenario.shared.UpdateReliability(part.partInfo.name, checkFailed);
+                EVARepairsScenario.shared.UpdateReliability(part.partInfo.name, partDidFail);
         }
         #endregion
 
@@ -797,7 +969,14 @@ namespace EVARepairs
 
             // Account for MTBF as well
             if (mtbf <= 0)
+            {
                 setStartingMTBF();
+            }
+            else if (currentMTBF < 0)
+            {
+                currentMTBF = mtbf * 3600;
+                mtbfCurrentMultiplier = 1;
+            }
 
             // Setup GUI
             Events["DebugBreakPart"].active = debugMode;
@@ -805,11 +984,15 @@ namespace EVARepairs
             Events["DebugWearOutPart"].active = debugMode;
             Fields["mtbfCurrentMultiplier"].guiActive = debugMode;
             Fields["currentMTBF"].guiActive = debugMode;
+            Fields["mtbfRateMultiplier"].guiActive = debugMode;
+            Fields["partDidFail"].guiActive = debugMode;
+            Fields["activationRoll"].guiActive = debugMode;
+            Events["RepairPart"].guiName = Localizer.Format("#LOC_EVAREPAIRS_repairPart", new string[1] { part.partInfo.title });
+            Events["OverhaulPart"].guiName = Localizer.Format("#LOC_EVAREPAIRS_overhaulPart", new string[1] { part.partInfo.title });
             if (!partWornOut)
             {
                 statusDisplay = needsMaintenance ? Localizer.Format("#LOC_EVAREPAIRS_needsMaintenance") : Localizer.Format("#LOC_EVAREPAIRS_statusOK");
                 Events["RepairPart"].active = needsMaintenance;
-                Events["RepairPart"].guiName = Localizer.Format("#LOC_EVAREPAIRS_repairPart", new string[1] { part.partInfo.title });
             }
             else
             {
@@ -817,10 +1000,27 @@ namespace EVARepairs
                 Events["RepairPart"].active = false;
             }
 
+            if (EVARepairsScenario.internalRepairsAllowed && part.CrewCapacity > 0)
+            {
+                Events["RepairPart"].guiActive = true;
+            }
+            else
+            {
+                Events["RepairPart"].guiActive = false;
+            }
+
             // Disable the part if it needs maintenance or is worn out.
             if (needsMaintenance || partWornOut)
             {
                 DisablePartModules();
+
+                if (EVARepairsScenario.partsCanWearOut && mtbfCurrentMultiplier < kOverhaulThreshold)
+                {
+                    // Enable overhauling
+                    Events["OverhaulPart"].active = true;
+                    if (EVARepairsScenario.internalRepairsAllowed)
+                        Events["OverhaulPart"].guiActive = true;
+                }
             }
 
             updateReliabilityDisplay();
@@ -841,6 +1041,37 @@ namespace EVARepairs
         #endregion
 
         #region Helpers
+        private void enableOverhauling()
+        {
+            if (EVARepairsScenario.partsCanWearOut && mtbfCurrentMultiplier < kOverhaulThreshold)
+            {
+                Events["OverhaulPart"].active = true;
+                if (EVARepairsScenario.internalRepairsAllowed)
+                    Events["OverhaulPart"].guiActive = true;
+            }
+        }
+
+        private double getResourceAmountForOverhaul()
+        {
+            PartResourceDefinition definition = getOverhaulResourceDefinition();
+            if (definition == null)
+                return 0;
+
+            double dryMass = part.mass;
+
+            return dryMass / definition.density;
+        }
+
+        private PartResourceDefinition getOverhaulResourceDefinition()
+        {
+            PartResourceDefinitionList definitions = PartResourceLibrary.Instance.resourceDefinitions;
+
+            if (definitions.Contains(overhaulResource))
+                return definitions[overhaulResource];
+            else
+                return null;
+        }
+
         private void disableWheelDeployment()
         {
             if (wheelStuckPosition <= 0)
@@ -943,15 +1174,32 @@ namespace EVARepairs
             // Check engines
             if (engines != null)
             {
+                applyThrottleBonus = false;
                 int count = engines.Count;
                 for (int index = 0; index < count; index++)
                 {
+                    // Change in operation state
                     if (engines[index].isOperational != engineStates[index])
                     {
                         engineStates[index] = engines[index].isOperational;
                         checkReliability = true;
                     }
+
+                    // Change in throttle state
+                    else if (engines[index].isOperational && engines[index].EngineIgnited && !previousThrottle.Equals(FlightInputHandler.state.mainThrottle))
+                    {
+                        previousThrottle = FlightInputHandler.state.mainThrottle;
+
+                        if (previousThrottle > 0)
+                        {
+                            applyThrottleBonus = true;
+                            checkReliability = true;
+                        }
+                    }
                 }
+
+                if (checkReliability)
+                    return true;
             }
 
             // Check converters
@@ -966,6 +1214,9 @@ namespace EVARepairs
                         checkReliability = true;
                     }
                 }
+
+                if (checkReliability)
+                    return true;
             }
 
             // Check reaction wheel
@@ -973,8 +1224,10 @@ namespace EVARepairs
             {
                 sasIsActive = FlightGlobals.ActiveVessel.ActionGroups[KSPActionGroup.SAS];
                 if (sasIsActive != sasWasActive)
-                    checkReliability = true;
-                sasWasActive = sasIsActive;
+                {
+                    sasWasActive = sasIsActive;
+                    return true;
+                }
             }
 
             // Check wheels
@@ -985,11 +1238,35 @@ namespace EVARepairs
                 // Only check for transition between extending and retracting.
                 if (wheelDeployment.fsm.CurrentState == wheelDeployment.st_retracting || wheelDeployment.fsm.CurrentState == wheelDeployment.st_deploying)
                 {
-                    checkReliability = true;
+                    return true;
                 }
             }
 
-            // Check event cards
+            // Check solar panels
+            /*
+            if (EVARepairsScenario.solarPanelsCanFail && solarPanels != null)
+            {
+                int count = solarPanels.Count;
+                for (int index = 0; index < count; index++)
+                {
+                    if (solarPanels[index].deployState == ModuleDeployablePart.DeployState.EXTENDED)
+                    {
+                        checkReliability = true;
+                        break;
+                    }
+                }
+            }
+
+            // Check radiators
+            if (EVARepairsScenario.radiatorsCanFail && radiator != null)
+            {
+                checkReliability = true;
+            }
+            if (EVARepairsScenario.radiatorsCanFail && deployableRadiator != null)
+            {
+                checkReliability = true;
+            }
+            */
 
             return checkReliability;
         }
@@ -1031,6 +1308,15 @@ namespace EVARepairs
             }
 
             Events["RepairPart"].active = needsMaintenance;
+            if (EVARepairsScenario.internalRepairsAllowed && part.CrewCapacity > 0)
+            {
+                Events["RepairPart"].guiActive = true;
+            }
+            else
+            {
+                Events["RepairPart"].guiActive = false;
+            }
+
             Fields["statusDisplay"].guiActive = maintenanceEnabled;
             Fields["statusDisplay"].guiActiveEditor = maintenanceEnabled;
             Fields["mtbfDisplay"].guiActive = reliabilityEnabled;
@@ -1097,6 +1383,11 @@ namespace EVARepairs
                     converterStates.Add(converters[index].IsActivated);
                 }
             }
+
+            solarPanels = part.FindModulesImplementing<ModuleDeployableSolarPanel>();
+
+            radiator = part.FindModuleImplementing<ModuleActiveRadiator>();
+            deployableRadiator = part.FindModuleImplementing<ModuleDeployableRadiator>();
 
             if (HighLogic.LoadedSceneIsFlight)
             {
