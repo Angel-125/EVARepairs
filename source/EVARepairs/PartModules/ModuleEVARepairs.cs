@@ -993,6 +993,7 @@ namespace EVARepairs
             {
                 statusDisplay = needsMaintenance ? Localizer.Format("#LOC_EVAREPAIRS_needsMaintenance") : Localizer.Format("#LOC_EVAREPAIRS_statusOK");
                 Events["RepairPart"].active = needsMaintenance;
+                Events["OverhaulPart"].active = false;
             }
             else
             {
@@ -1185,16 +1186,16 @@ namespace EVARepairs
                         checkReliability = true;
                     }
 
-                    // Change in throttle state
+                    // Change in throttle state: must go from off to on
                     else if (engines[index].isOperational && engines[index].EngineIgnited && !previousThrottle.Equals(FlightInputHandler.state.mainThrottle))
                     {
-                        previousThrottle = FlightInputHandler.state.mainThrottle;
-
-                        if (previousThrottle > 0)
+                        if (previousThrottle <= 0.0001 && FlightInputHandler.state.mainThrottle > 0)
                         {
                             applyThrottleBonus = true;
                             checkReliability = true;
                         }
+
+                        previousThrottle = FlightInputHandler.state.mainThrottle;
                     }
                 }
 
@@ -1319,8 +1320,6 @@ namespace EVARepairs
 
             Fields["statusDisplay"].guiActive = maintenanceEnabled;
             Fields["statusDisplay"].guiActiveEditor = maintenanceEnabled;
-            Fields["mtbfDisplay"].guiActive = reliabilityEnabled;
-            Fields["mtbfDisplay"].guiActiveEditor = reliabilityEnabled;
             Events["DebugBreakPart"].active = debugMode;
             Events["DebugRepairPart"].active = debugMode;
             Events["DebugWearOutPart"].active = debugMode;
