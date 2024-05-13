@@ -170,6 +170,14 @@ namespace EVARepairs
                 return settings.reactionWheelFailureEnabled;
             }
         }
+        public static bool EnginesCanFail
+        {
+            get
+            {
+                EVARepairsSettingsBreakableParts settings = HighLogic.CurrentGame.Parameters.CustomParams<EVARepairsSettingsBreakableParts>();
+                return settings.enginesCanFail;
+            }
+        }
 
         public static bool LandingGearCanFail
         {
@@ -219,6 +227,9 @@ namespace EVARepairs
 
     public class EVARepairsSettingsBreakableParts : GameParameters.CustomParameterNode
     {
+        [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_internalEnginesDesc", toolTip = "#LOC_EVAREPAIRS_internalEnginesTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool enginesCanFail = true;
+
         [GameParameters.CustomParameterUI("#LOC_EVAREPAIRS_settingsWheelsDesc", toolTip = "#LOC_EVAREPAIRS_settingsWheelsTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool reactionWheelFailureEnabled = false;
 

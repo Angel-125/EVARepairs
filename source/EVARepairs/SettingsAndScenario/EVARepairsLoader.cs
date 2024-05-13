@@ -39,11 +39,38 @@ namespace EVARepairs.SettingsAndScenario
                 if (!baselineConfig.HasValue("name") || baselineConfig.GetValue("name") != kModuleNameToAdd)
                     return;
 
+                // Create the blacklist. Parts on this list won't be subjected to EVA Repairs
+                nodes = GameDatabase.Instance.GetConfigNodes("EVAREPAIRS_BLACKLISTED_PARTS");
+                ConfigNode node;
+                string[] partNameValues;
+                string partNameBlacklist = string.Empty;
+                for (int index = 0; index < nodes.Length; index++)
+                {
+                    node = nodes[index];
+                    if (node.HasValue("partName"))
+                    {
+                        partNameValues = node.GetValues("partName");
+                        if (partNameValues.Length > 0)
+                        {
+                            for (int partNameIndex = 0; partNameIndex < partNameValues.Length; partNameIndex++)
+                                partNameBlacklist += partNameValues[partNameIndex] + ";";
+                        }
+                    }
+                }
+                Debug.Log("[EVARepairsLoader] - Blacklisted parts: " + partNameBlacklist);
+
                 // Now, go through each part and see if it needs to have a ModuleEVARepairs.
                 for (int index = 0; index < count; index++)
                 {
                     // Get the available part
                     availablePart = PartLoader.LoadedPartsList[index];
+
+                    // Skip part if it's on the blacklist.
+                    if (partNameBlacklist.Contains(availablePart.name))
+                    {
+                        Debug.Log("[EVARepairsLoader] - Skipping blacklisted part " + availablePart.name);
+                        continue;
+                    }
 
                     // Add repair module
                     addRepairModule(availablePart, baselineConfig);

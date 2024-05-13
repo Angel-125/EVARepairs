@@ -385,12 +385,75 @@ namespace EVARepairs
             mtbfCurrentMultiplier = 1f;
             partWornOut = false;
         }
+
+        [KSPEvent(guiName = "(Debug) Enable Failures", guiActive = true, guiActiveUncommand = true, groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
+        public virtual void DebugEnableFailures()
+        {
+            Debug.Log("[ModuleEVARepairs] - Enabling " + part.partInfo.name);
+            EVARepairsScenario.shared.EnableFailuresFor(part);
+
+            int count = EditorLogic.fetch.ship.parts.Count;
+            List<Part> shipParts = EditorLogic.fetch.ship.parts;
+            Part shipPart;
+            for (int index = 0; index < count; index++)
+            {
+                shipPart = shipParts[index];
+                if (shipPart.partInfo.name == part.partInfo.name)
+                {
+                    FailuresEnabled();
+                }
+            }
+        }
+
+        [KSPEvent(guiName = "(Debug) Disable Failures", guiActive = true, guiActiveUncommand = true, groupName = "#LOC_EVAREPAIRS_groupTitleName", groupDisplayName = "#LOC_EVAREPAIRS_groupTitleName")]
+        public virtual void DebugDisableFailures()
+        {
+            Debug.Log("[ModuleEVARepairs] - Disabling " + part.partInfo.name);
+            
+            EVARepairsScenario.shared.DisableFailuresFor(part);
+
+            int count = EditorLogic.fetch.ship.parts.Count;
+            List<Part> shipParts = EditorLogic.fetch.ship.parts;
+            Part shipPart;
+            for (int index = 0; index < count; index++)
+            {
+                shipPart = shipParts[index];
+                if (shipPart.partInfo.name == part.partInfo.name)
+                {
+                    FailuresDisabled();
+                }
+            }
+        }
         #endregion
 
         #region GameEvent Handlers
         #endregion
 
         #region API
+        public void FailuresEnabled()
+        {
+            updatePartEnabledDisabledUI();
+            Events["RepairPart"].active = true;
+            Events["DebugEnableFailures"].guiActiveEditor = false;
+            Events["DebugDisableFailures"].guiActiveEditor = true;
+            Fields["mtbfDisplay"].guiActive = true;
+            Fields["mtbfDisplay"].guiActiveEditor = true;
+            Fields["statusDisplay"].guiActiveEditor = true;
+            statusDisplay = "Enabled";
+        }
+
+        public void FailuresDisabled()
+        {
+            updatePartEnabledDisabledUI();
+            Events["RepairPart"].active = false;
+            Events["DebugEnableFailures"].guiActiveEditor = true;
+            Events["DebugDisableFailures"].guiActiveEditor = false;
+            Fields["mtbfDisplay"].guiActive = false;
+            Fields["mtbfDisplay"].guiActiveEditor = false;
+            Fields["statusDisplay"].guiActiveEditor = true;
+            statusDisplay = "Disabled";
+        }
+
         /// <summary>
         /// Restores part functionality.
         /// </summary>
@@ -491,16 +554,19 @@ namespace EVARepairs
             }
 
             // If the part has an active engine, and we're throttled up, then we can update.
-            count = engines.Count;
-            if (count > 0)
+            if (EVARepairsScenario.enginesCanFail)
             {
-                for (int index = 0; index < count; index++)
+                count = engines.Count;
+                if (count > 0)
                 {
-                    if (engines[index].isOperational && FlightInputHandler.state.mainThrottle > 0)
+                    for (int index = 0; index < count; index++)
                     {
-                        if (EVARepairsScenario.debugMode)
-                            Debug.Log("[ModuleEVARepairs] - CanUpdateMTBF: Has running engine");
-                        return true;
+                        if (engines[index].isOperational && FlightInputHandler.state.mainThrottle > 0)
+                        {
+                            if (EVARepairsScenario.debugMode)
+                                Debug.Log("[ModuleEVARepairs] - CanUpdateMTBF: Has running engine");
+                            return true;
+                        }
                     }
                 }
             }
@@ -939,7 +1005,7 @@ namespace EVARepairs
             }
 
             // Check to see if EVA Repairs is enabled.
-            if (!EVARepairsScenario.maintenanceEnabled)
+            if (!EVARepairsScenario.maintenanceEnabled || EVARepairsScenario.shared.IsPartDisabled(part))
             {
                 needsMaintenance = false;
                 Events["RepairPart"].active = false;
@@ -947,8 +1013,26 @@ namespace EVARepairs
                 Fields["statusDisplay"].guiActiveEditor = false;
                 Fields["mtbfDisplay"].guiActive = false;
                 Fields["mtbfDisplay"].guiActiveEditor = false;
-                return;
+
+                if (!EVARepairsScenario.maintenanceEnabled)
+                    return;
             }
+
+            // Debug mode
+            Events["DebugBreakPart"].active = debugMode;
+            Events["DebugRepairPart"].active = debugMode;
+            Events["DebugWearOutPart"].active = debugMode;
+            Fields["mtbfCurrentMultiplier"].guiActive = debugMode;
+            Fields["currentMTBF"].guiActive = debugMode;
+            Fields["mtbfRateMultiplier"].guiActive = debugMode;
+            Fields["partDidFail"].guiActive = debugMode;
+            Fields["activationRoll"].guiActive = debugMode;
+            Events["DebugEnableFailures"].active = debugMode;
+            Events["DebugDisableFailures"].active = debugMode;
+
+            Events["DebugEnableFailures"].guiName = "Failures ON: ALL " + part.partInfo.title;
+            Events["DebugDisableFailures"].guiName = "Failures OFF: ALL " + part.partInfo.title;
+            updatePartEnabledDisabledUI();
 
             // Make sure we have a starting value for last updated.
             if (lastUpdated <= 0 && HighLogic.LoadedSceneIsFlight)
@@ -979,14 +1063,6 @@ namespace EVARepairs
             }
 
             // Setup GUI
-            Events["DebugBreakPart"].active = debugMode;
-            Events["DebugRepairPart"].active = debugMode;
-            Events["DebugWearOutPart"].active = debugMode;
-            Fields["mtbfCurrentMultiplier"].guiActive = debugMode;
-            Fields["currentMTBF"].guiActive = debugMode;
-            Fields["mtbfRateMultiplier"].guiActive = debugMode;
-            Fields["partDidFail"].guiActive = debugMode;
-            Fields["activationRoll"].guiActive = debugMode;
             Events["RepairPart"].guiName = Localizer.Format("#LOC_EVAREPAIRS_repairPart", new string[1] { part.partInfo.title });
             Events["OverhaulPart"].guiName = Localizer.Format("#LOC_EVAREPAIRS_overhaulPart", new string[1] { part.partInfo.title });
             if (!partWornOut)
@@ -1042,6 +1118,14 @@ namespace EVARepairs
         #endregion
 
         #region Helpers
+
+        private void updatePartEnabledDisabledUI()
+        {
+            bool isPartDisabled = EVARepairsScenario.shared.IsPartDisabled(part);
+            Events["DebugEnableFailures"].guiActiveEditor = isPartDisabled;
+            Events["DebugDisableFailures"].guiActiveEditor = !isPartDisabled;
+        }
+
         private void enableOverhauling()
         {
             if (EVARepairsScenario.partsCanWearOut && mtbfCurrentMultiplier < kOverhaulThreshold)
@@ -1187,6 +1271,7 @@ namespace EVARepairs
                     }
 
                     // Change in throttle state: must go from off to on
+                    /*
                     else if (engines[index].isOperational && engines[index].EngineIgnited && !previousThrottle.Equals(FlightInputHandler.state.mainThrottle))
                     {
                         if (previousThrottle <= 0.0001 && FlightInputHandler.state.mainThrottle > 0)
@@ -1197,6 +1282,7 @@ namespace EVARepairs
 
                         previousThrottle = FlightInputHandler.state.mainThrottle;
                     }
+                    */
                 }
 
                 if (checkReliability)

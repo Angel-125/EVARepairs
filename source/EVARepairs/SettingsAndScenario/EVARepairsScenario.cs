@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 using UnityEngine;
 using KSP.IO;
 using FinePrint;
@@ -53,6 +54,7 @@ namespace EVARepairs
         public static bool radiatorsCanFail = false;
         public static bool technologicalProgressEnabled = false;
         public static bool internalRepairsAllowed = false;
+        public static bool enginesCanFail = false;
         public static int startingReliability = 30;
         public static int maxReliabilityLvl1 = 90;
         public static int maxReliabilityLvl2 = 95;
@@ -67,6 +69,7 @@ namespace EVARepairs
         Dictionary<string, PartReliability> partReliabilities = new Dictionary<string, PartReliability>();
         Dictionary<string, int> techNodeStartingReliabilities = new Dictionary<string, int>();
         List<string> techUnlockBonusNodes = new List<string>();
+        string partNameBlacklist = string.Empty;
         #endregion
 
         #region Overrides
@@ -84,6 +87,7 @@ namespace EVARepairs
             loadPartReliabilities(node);
             loadTechStartingReliabilityBonuses(node);
             loadTechUnlockBonusNodes();
+            loadPartsBlacklist();
         }
 
         public override void OnSave(ConfigNode node)
@@ -91,6 +95,7 @@ namespace EVARepairs
             base.OnSave(node);
             savePartReliabilities(node);
             saveTechStartingReliabilityBonuses(node);
+            savePartsBlacklist();
         }
 
         public void OnDestroy()
@@ -101,6 +106,48 @@ namespace EVARepairs
         #endregion
 
         #region API
+        public bool IsPartDisabled(Part part)
+        {
+            if (part.partInfo == null)
+                return false;
+
+            return partNameBlacklist.Contains(part.partInfo.name);
+        }
+
+        public void EnableFailuresFor(Part part)
+        {
+            if (part.partInfo == null)
+                return;
+
+            Debug.Log("[EVARepairsScenario] - Enabling failures for " + part.partInfo.name);
+            if (partNameBlacklist.Contains(part.partInfo.name))
+            {
+                partNameBlacklist = partNameBlacklist.Replace(part.partInfo.name, "");
+                if (partNameBlacklist.EndsWith(";"))
+                    partNameBlacklist = partNameBlacklist.TrimEnd(new char[] { ';' });
+            }
+
+            partNameBlacklist = partNameBlacklist.Replace(";;", ";");
+
+            Debug.Log("[EVARepairsScenario] - Current blacklist: " + partNameBlacklist);
+        }
+
+        public void DisableFailuresFor(Part part)
+        {
+            if (part.partInfo == null)
+                return;
+
+            Debug.Log("[EVARepairsScenario] - Disabling failures for " + part.partInfo.name);
+            if (string.IsNullOrEmpty(partNameBlacklist))
+                partNameBlacklist = part.partInfo.name;
+            else if (!partNameBlacklist.Contains(part.partInfo.name))
+                partNameBlacklist += ";" + part.partInfo.name;
+
+            partNameBlacklist = partNameBlacklist.Replace(";;", ";");
+
+            Debug.Log("[EVARepairsScenario] - Current blacklist: " + partNameBlacklist);
+        }
+
         public void UpdateSettings()
         {
             onGameSettingsApplied();
@@ -258,6 +305,68 @@ namespace EVARepairs
             return techNodeStartingReliabilities[techNode.techID];
         }
 
+        private void loadPartsBlacklist()
+        {
+            string dir = $"{KSPUtil.ApplicationRootPath}GameData/";
+            string filePath = $"{dir}EVARepairs_DisabledParts.cfg";
+            if (!System.IO.File.Exists(filePath))
+                return;
+            ConfigNode diabledPartsNode = ConfigNode.Load(filePath);
+
+            // Disabled parts file
+            string[] partNameValues;
+            if (diabledPartsNode.HasValue("partName"))
+            {
+                partNameValues = diabledPartsNode.GetValues("partName");
+                if (partNameValues.Length > 0)
+                {
+                    for (int partNameIndex = 0; partNameIndex < partNameValues.Length; partNameIndex++)
+                        partNameBlacklist += partNameValues[partNameIndex] + ";";
+                }
+            }
+
+            // Also add blacklist
+            ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes("EVAREPAIRS_BLACKLISTED_PARTS");
+            ConfigNode node;
+            for (int index = 0; index < nodes.Length; index++)
+            {
+                node = nodes[index];
+                if (node.HasValue("partName"))
+                {
+                    partNameValues = node.GetValues("partName");
+                    if (partNameValues.Length > 0)
+                    {
+                        for (int partNameIndex = 0; partNameIndex < partNameValues.Length; partNameIndex++)
+                            partNameBlacklist += partNameValues[partNameIndex] + ";";
+                    }
+                }
+            }
+
+            Debug.Log("[EVARepairsScenario] - Blacklisted parts: " + partNameBlacklist);
+        }
+
+        private void savePartsBlacklist()
+        {
+            if (string.IsNullOrEmpty(partNameBlacklist))
+            {
+                Debug.Log("[EVARepairsScenario] - No parts on the blacklist.");
+                return;
+            }
+
+            string dir = $"{KSPUtil.ApplicationRootPath}GameData/";
+            string filePath = $"{dir}EVARepairs_DisabledParts.cfg";
+
+            ConfigNode node = new ConfigNode("EVAREPAIRS_DISABLED_PARTS");
+            string[] blacklistedParts = partNameBlacklist.Split(new char[] { ';' });
+            for (int index = 0; index < blacklistedParts.Length; index++)
+            {
+                node.AddValue("partName", blacklistedParts[index]);
+                Debug.Log("[EVARepairsScenario] - Added " + blacklistedParts[index]);
+            }
+
+            node.Save(filePath);
+        }
+
         private void loadTechUnlockBonusNodes()
         {
             ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes(kTechUnlockBonusNode);
@@ -372,6 +481,7 @@ namespace EVARepairs
             radiatorsCanFail = EVARepairsSettings.RadiatorsCanFail;
             internalRepairsAllowed = EVARepairsSettings.InternalRepairsAllowed;
             technologicalProgressEnabled = EVARepairsSettings.TechnologicalProgressEnabled;
+            enginesCanFail = EVARepairsSettings.EnginesCanFail;
             debugMode = EVARepairsSettings.DebugModeEnabled;
         }
 
