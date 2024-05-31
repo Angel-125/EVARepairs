@@ -245,8 +245,6 @@ namespace EVARepairs
         float wheelDeployPosition = 0f;
         float wheelRetractPosition = 0f;
         KFSMState previousWheelState = null;
-        float previousThrottle = 0f;
-        bool applyThrottleBonus = false;
 
         KSPActionGroup wheelActionGroup;
         [KSPField(isPersistant = true)]
@@ -502,7 +500,7 @@ namespace EVARepairs
                 return false;
 
             // If the part has deployable landing gear or legs, then we can update.
-            if (wheelDeployment != null)
+            if (EVARepairsScenario.landingGearCanFail && wheelDeployment != null)
             {
                 if (EVARepairsScenario.debugMode)
                     Debug.Log("[ModuleEVARepairs] - CanUpdateMTBF: Has breakable wheels");
@@ -917,15 +915,9 @@ namespace EVARepairs
 
             // Make the check
             int dieRoll = UnityEngine.Random.Range(1, 100);
-            if (applyThrottleBonus)
-            {
-                dieRoll += kThrottleActivationBonus;
-                if (dieRoll > 100)
-                    dieRoll = 100;
-            }
             activationRoll = dieRoll;
             partDidFail = false;
-            if (dieRoll < targetNumber)
+            if (dieRoll > targetNumber)
             {
                 // Reduce current MTBF to 1-10 seconds to allow some time before the failure occurs.
                 if (wheelDeployment == null)
@@ -1259,7 +1251,6 @@ namespace EVARepairs
             // Check engines
             if (engines != null)
             {
-                applyThrottleBonus = false;
                 int count = engines.Count;
                 for (int index = 0; index < count; index++)
                 {
@@ -1269,20 +1260,6 @@ namespace EVARepairs
                         engineStates[index] = engines[index].isOperational;
                         checkReliability = true;
                     }
-
-                    // Change in throttle state: must go from off to on
-                    /*
-                    else if (engines[index].isOperational && engines[index].EngineIgnited && !previousThrottle.Equals(FlightInputHandler.state.mainThrottle))
-                    {
-                        if (previousThrottle <= 0.0001 && FlightInputHandler.state.mainThrottle > 0)
-                        {
-                            applyThrottleBonus = true;
-                            checkReliability = true;
-                        }
-
-                        previousThrottle = FlightInputHandler.state.mainThrottle;
-                    }
-                    */
                 }
 
                 if (checkReliability)
@@ -1328,32 +1305,6 @@ namespace EVARepairs
                     return true;
                 }
             }
-
-            // Check solar panels
-            /*
-            if (EVARepairsScenario.solarPanelsCanFail && solarPanels != null)
-            {
-                int count = solarPanels.Count;
-                for (int index = 0; index < count; index++)
-                {
-                    if (solarPanels[index].deployState == ModuleDeployablePart.DeployState.EXTENDED)
-                    {
-                        checkReliability = true;
-                        break;
-                    }
-                }
-            }
-
-            // Check radiators
-            if (EVARepairsScenario.radiatorsCanFail && radiator != null)
-            {
-                checkReliability = true;
-            }
-            if (EVARepairsScenario.radiatorsCanFail && deployableRadiator != null)
-            {
-                checkReliability = true;
-            }
-            */
 
             return checkReliability;
         }
